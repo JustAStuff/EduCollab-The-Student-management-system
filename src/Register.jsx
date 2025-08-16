@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
+import { useNavigate } from "react-router-dom";
 import "./Auth.css";
 
 function Register() {
   const [formData, setFormData] = useState({
+    registerNumber: "",
     fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
 
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -24,21 +26,42 @@ function Register() {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
+    setLoading(true);
+
+    // Step 1: Register in Supabase Auth
+    const { data, error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
-        data: { full_name: formData.fullName },
-        emailRedirectTo: "http://localhost:5173/login", // redirect after confirmation
+        emailRedirectTo: "http://localhost:5173/login",
       },
     });
 
     if (error) {
       alert(error.message);
-    } else {
-      alert("Registration successful! Check your email to confirm.");
-      navigate("/login");
+      setLoading(false);
+      return;
     }
+
+    // Step 2: Store in Users table
+    const { error: insertError } = await supabase.from("Users").insert([
+      {
+        register_number: parseInt(formData.registerNumber, 10),
+        full_name: formData.fullName,
+        email: formData.email,
+      },
+    ]);
+
+    if (insertError) {
+      console.error(insertError.message);
+      alert("Error saving user profile: " + insertError.message);
+      setLoading(false);
+      return;
+    }
+
+    alert("Registration successful! Check your email to confirm.");
+    setLoading(false);
+    navigate("/login");
   };
 
   return (
@@ -46,6 +69,14 @@ function Register() {
       <div className="auth-card">
         <h2>REGISTRATION</h2>
         <form onSubmit={handleSubmit}>
+          <input
+            type="number"
+            name="registerNumber"
+            placeholder="Register number"
+            value={formData.registerNumber}
+            onChange={handleChange}
+            required
+          />
           <input
             type="text"
             name="fullName"
@@ -78,7 +109,9 @@ function Register() {
             onChange={handleChange}
             required
           />
-          <button type="submit">REGISTER</button>
+          <button type="submit" disabled={loading}>
+            {loading ? "Registering..." : "REGISTER"}
+          </button>
         </form>
       </div>
     </div>
