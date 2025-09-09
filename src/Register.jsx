@@ -33,7 +33,7 @@ function Register() {
       email: formData.email,
       password: formData.password,
       options: {
-        emailRedirectTo: "http://localhost:5173/login",
+        emailRedirectTo: "http://localhost:5173/",
       },
     });
 
@@ -61,7 +61,7 @@ function Register() {
 
     alert("Registration successful! Check your email to confirm.");
     setLoading(false);
-    navigate("/login");
+    navigate("/");
   };
 
   return (
@@ -112,6 +112,7 @@ function Register() {
           <button type="submit" disabled={loading}>
             {loading ? "Registering..." : "REGISTER"}
           </button>
+          <a href="/" className="login"> Already a user? Login</a>
         </form>
       </div>
     </div>
