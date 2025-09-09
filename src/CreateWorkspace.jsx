@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import "./Auth.css";
 
-function Login() {
+function CreateWorkspace() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -49,7 +49,7 @@ function Login() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <a href="/forgot-password" className="forgot">Forgot password?</a> 
+          <a href="#" className="forgot">Forgot password?</a> 
           
           <button type="submit" disabled={loading}>
             {loading ? "Logging in..." : "LOGIN"}
@@ -63,4 +63,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default CreateWorkspace;
