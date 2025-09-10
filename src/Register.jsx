@@ -1,7 +1,17 @@
 import { useState } from "react";
 import { supabase } from "./supabaseClient";
 import { useNavigate } from "react-router-dom";
-import "./Auth.css";
+import {
+  Box,
+  Card,
+  CardContent,
+  TextField,
+  Button,
+  Typography,
+  IconButton,
+  InputAdornment,
+} from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -13,6 +23,9 @@ function Register() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -29,7 +42,7 @@ function Register() {
     setLoading(true);
 
     // Step 1: Register in Supabase Auth
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
@@ -65,57 +78,126 @@ function Register() {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h2>REGISTRATION</h2>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="number"
-            name="registerNumber"
-            placeholder="Register number"
-            value={formData.registerNumber}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="text"
-            name="fullName"
-            placeholder="Full name"
-            value={formData.fullName}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="College email address"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="Confirm password"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-          />
-          <button type="submit" disabled={loading}>
-            {loading ? "Registering..." : "REGISTER"}
-          </button>
-          <a href="/" className="login"> Already a user? Login</a>
-        </form>
-      </div>
-    </div>
+    <Box
+      sx={{
+        minHeight: "90vh",
+        minWidth:"100vw",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        bgcolor: "#f5f5f5",
+      }}
+    >
+      <Card sx={{margin: "auto", alignItems:"center", paddingLeft:"500px", width: 400, p: 3, maxHeight:"fit-content"}}>
+        <CardContent>
+          <Typography variant="h5" align="center" gutterBottom>
+            Registration
+          </Typography>
+          <form onSubmit={handleSubmit}>
+            <TextField
+              type="number"
+              name="registerNumber"
+              label="Register Number"
+              value={formData.registerNumber}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+              required
+            />
+            <TextField
+              type="text"
+              name="fullName"
+              label="Full Name"
+              value={formData.fullName}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+              required
+            />
+            <TextField
+              type="email"
+              name="email"
+              label="College Email"
+              value={formData.email}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+              required
+            />
+            <TextField
+              type={showPassword ? "text" : "password"}
+              name="password"
+              label="Password"
+              value={formData.password}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+              required
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              type={showConfirmPassword ? "text" : "password"}
+              name="confirmPassword"
+              label="Confirm Password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+              required
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      edge="end"
+                    >
+                      {showConfirmPassword ? (
+                        <VisibilityOff />
+                      ) : (
+                        <Visibility />
+                      )}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              sx={{ mt: 2 }}
+              disabled={loading}
+            >
+              {loading ? "Registering..." : "Register"}
+            </Button>
+          </form>
+          <Typography
+            variant="body2"
+            align="center"
+            sx={{ mt: 2 }}
+            color="text.secondary"
+          >
+            Already a user?{" "}
+            <a href="/" style={{ textDecoration: "none", color: "#1976d2" }}>
+              Login
+            </a>
+          </Typography>
+        </CardContent>
+      </Card>
+    </Box>
   );
 }
 

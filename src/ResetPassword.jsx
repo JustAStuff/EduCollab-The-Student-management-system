@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import {useNavigate} from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import { TextField, Button, Typography, Alert } from "@mui/material";
 
@@ -7,7 +8,8 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-
+  
+  const navigate = useNavigate();
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
@@ -24,11 +26,12 @@ export default function ResetPassword() {
       setError(error.message);
     } else {
       setMessage("Password successfully updated! You can now login.");
+      navigate("/");
     }
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "auto", paddingTop: "50px" }}>
+    <div style={{ maxWidth: "400px", margin: "auto", alignItems:"center", paddingLeft:"500px" }}>
       <Typography variant="h5" gutterBottom>
         Reset Password
       </Typography>
