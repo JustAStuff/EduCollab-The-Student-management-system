@@ -5,7 +5,7 @@ import Dashboard from "./Dashboard";
 import CreateWorkspace from "./CreateWorkspace";
 import ResetPassword from "./ResetPassword";
 import ForgotPassword from "./ForgotPassword";
-import ForgotPassword from "./PublicChat";
+import PublicChat from "./PublicChat";
 function App() {
   return (
     <Routes>
