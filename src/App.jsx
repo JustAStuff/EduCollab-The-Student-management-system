@@ -9,17 +9,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import PublicChat from './PublicChat';
 
-function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/chat" element={<PublicChat />} />
-      </Routes>
-    </Router>
-  );
-}
-
 
 function App() {
   return (
@@ -30,6 +19,7 @@ function App() {
       <Route path="/create-workspace" element={<CreateWorkspace />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/forgot-password" element={<ForgotPassword/>}/>
+      <Route path="/chat" element={<PublicChat />} />
 
     </Routes>
   );
