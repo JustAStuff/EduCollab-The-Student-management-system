@@ -1,5 +1,7 @@
 // src/pages/Dashboard.jsx
 import React from "react";
+import PublicChat from '../PublicChat';  // Adjust path if needed
+
 import {
   Box,
   Drawer,
@@ -38,6 +40,7 @@ const Sidebar = styled(Drawer)(() => ({
 }));
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   return (
     <MainBox>
       {/* Sidebar */}
@@ -58,12 +61,13 @@ const Dashboard = () => {
           </Typography>
 
           <Divider sx={{ bgcolor: "rgba(255,255,255,0.3)", my: 2 }} />
-          <ListItem button>
-            <ListItemText primary="Dashboard" />
-          </ListItem>
-          <ListItem button>
-            <ListItemText primary="Public Chat" />
-          </ListItem>
+        <ListItem button onClick={() => setView('dashboard')}>
+  <ListItemText primary="Dashboard" />
+</ListItem>
+<ListItem button onClick={() => setView('chat')}>
+  <ListItemText primary="Public Chat" />
+</ListItem>
+
           <ListItem button>
             <ListItemText primary="Problem Statements" />
           </ListItem>
@@ -88,6 +92,16 @@ const Dashboard = () => {
             Create Workspace
           </Button>
         </Box>
+        <Box component="main" sx={{ flexGrow: 1, p: 4, maxWidth: "100%" }}>
+  {view === 'dashboard' ? (
+    <Grid container spacing={3} direction="column">
+      {/* Dashboard content here */}
+    </Grid>
+  ) : (
+    <PublicChat />
+  )}
+</Box>
+
 
         {/* Sections stacked vertically */}
         <Grid container spacing={3} direction="column">

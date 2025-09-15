@@ -5,6 +5,22 @@ import Dashboard from "./Dashboard";
 import CreateWorkspace from "./CreateWorkspace";
 import ResetPassword from "./ResetPassword";
 import ForgotPassword from "./ForgotPassword";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Dashboard from './pages/Dashboard';
+import PublicChat from './PublicChat';
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/chat" element={<PublicChat />} />
+      </Routes>
+    </Router>
+  );
+}
+
+
 function App() {
   return (
     <Routes>
