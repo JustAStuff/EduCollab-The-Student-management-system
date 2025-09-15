@@ -5,11 +5,7 @@ import Dashboard from "./Dashboard";
 import CreateWorkspace from "./CreateWorkspace";
 import ResetPassword from "./ResetPassword";
 import ForgotPassword from "./ForgotPassword";
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Dashboard from './pages/Dashboard';
-import PublicChat from './PublicChat';
-
-
+import PublicChat from "./PublicChat";
 function App() {
   return (
     <Routes>
@@ -19,8 +15,7 @@ function App() {
       <Route path="/create-workspace" element={<CreateWorkspace />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/forgot-password" element={<ForgotPassword/>}/>
-      <Route path="/chat" element={<PublicChat />} />
-
+      <Route path="/PublicChat" element={<PublicChat/>}/>
     </Routes>
   );
 }
