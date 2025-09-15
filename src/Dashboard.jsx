@@ -92,16 +92,7 @@ const Dashboard = () => {
             Create Workspace
           </Button>
         </Box>
-        <Box component="main" sx={{ flexGrow: 1, p: 4, maxWidth: "100%" }}>
-  {view === 'dashboard' ? (
-    <Grid container spacing={3} direction="column">
-      {/* Dashboard content here */}
-    </Grid>
-  ) : (
-    <PublicChat />
-  )}
-</Box>
-
+        
 
         {/* Sections stacked vertically */}
         <Grid container spacing={3} direction="column">
