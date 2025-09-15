@@ -38,6 +38,7 @@ const Sidebar = styled(Drawer)(() => ({
 }));
 
 const Dashboard = () => {
+   const navigate = useNavigate();
   return (
     <MainBox>
       {/* Sidebar */}
