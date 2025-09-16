@@ -1,5 +1,6 @@
 // src/Sidebar.jsx
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Drawer,
@@ -13,6 +14,7 @@ import {
 const drawerWidth = 240;
 
 export default function Sidebar() {
+  const navigate = useNavigate();
   return (
     <Drawer
       variant="permanent"
@@ -47,7 +49,7 @@ export default function Sidebar() {
         <ListItem button>
           <ListItemText primary="Dashboard" />
         </ListItem>
-        <ListItem button>
+        <ListItem button onClick={() => navigate("/public-chat")}>
           <ListItemText primary="Public Chat" />
         </ListItem>
         <ListItem button>
