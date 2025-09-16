@@ -1,6 +1,6 @@
 // src/pages/PublicChat.jsx
 import React, { useEffect, useState } from "react";
-import { supabase } from "../supabaseClient";
+import { supabase } from "./supabaseClient";
 import {
   Box,
   Typography,
