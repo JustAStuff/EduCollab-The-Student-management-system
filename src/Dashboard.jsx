@@ -1,76 +1,35 @@
+Dashboard.jsx la indha code potukonga
+
 // src/pages/Dashboard.jsx
 import React from "react";
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
 import {
   Box,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
   Typography,
   Button,
-  Divider,
   Grid,
   Paper,
   CircularProgress,
   LinearProgress,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-
-const drawerWidth = 240;
+import Sidebar from "./Sidebar";   // ✅ Import Sidebar
 
 const MainBox = styled(Box)(() => ({
   display: "flex",
-  height: "100vh",   // full screen height
-  width: "100vw",    // full screen width
+  height: "100vh",
+  width: "100vw",
   backgroundColor: "#F9FAFB",
   fontFamily: "Roboto, sans-serif",
 }));
 
-const Sidebar = styled(Drawer)(() => ({
-  width: drawerWidth,
-  flexShrink: 0,
-  "& .MuiDrawer-paper": {
-    width: drawerWidth,
-    boxSizing: "border-box",
-    backgroundColor: "#106EBE",
-    color: "white",
-  },
-}));
-
 const Dashboard = () => {
-   const navigate = useNavigate();
+  const navigate = useNavigate();
+
   return (
     <MainBox>
       {/* Sidebar */}
-      <Sidebar variant="permanent" anchor="left">
-        <Box sx={{ p: 3 }}>
-          <Typography variant="h6" fontWeight="bold">
-            Dashboard
-          </Typography>
-        </Box>
-        <Divider sx={{ bgcolor: "rgba(255,255,255,0.3)" }} />
-        <List>
-          <Typography sx={{ px: 2, py: 1, fontSize: 13, opacity: 0.8 }}>
-            My Workspaces
-          </Typography>
-
-          <Typography sx={{ px: 2, py: 1, fontSize: 13, opacity: 0.8 }}>
-            Other Workspaces
-          </Typography>
-
-          <Divider sx={{ bgcolor: "rgba(255,255,255,0.3)", my: 2 }} />
-      <ListItem button onClick={() => navigate("/dashboard")}>
-        <ListItemText primary="Dashboard" />
-      </ListItem>
-      <ListItem button onClick={() => navigate("/public-chat")}>
-        <ListItemText primary="Public Chat" />
-      </ListItem>
-      <ListItem button>
-        <ListItemText primary="Problem Statements" />
-      </ListItem>
-    </List>
-      </Sidebar>
+      <Sidebar />
 
       {/* Main Content */}
       <Box component="main" sx={{ flexGrow: 1, p: 4, maxWidth: "100%" }}>
@@ -85,7 +44,6 @@ const Dashboard = () => {
               px: 3,
             }}
             onClick={() => navigate("/create-workspace")}
-
           >
             Create Workspace
           </Button>
@@ -191,4 +149,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Dashboard;
