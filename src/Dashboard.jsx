@@ -1,5 +1,3 @@
-Dashboard.jsx la indha code potukonga
-
 // src/pages/Dashboard.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
