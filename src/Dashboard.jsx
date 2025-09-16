@@ -1,5 +1,6 @@
 // src/pages/Dashboard.jsx
 import React from "react";
+import { useNavigate } from "react-router-dom"; 
 import {
   Box,
   Drawer,
@@ -38,6 +39,7 @@ const Sidebar = styled(Drawer)(() => ({
 }));
 
 const Dashboard = () => {
+   const navigate = useNavigate();
   return (
     <MainBox>
       {/* Sidebar */}
@@ -58,16 +60,16 @@ const Dashboard = () => {
           </Typography>
 
           <Divider sx={{ bgcolor: "rgba(255,255,255,0.3)", my: 2 }} />
-          <ListItem button>
-            <ListItemText primary="Dashboard" />
-          </ListItem>
-          <ListItem button>
-            <ListItemText primary="Public Chat" />
-          </ListItem>
-          <ListItem button>
-            <ListItemText primary="Problem Statements" />
-          </ListItem>
-        </List>
+      <ListItem button onClick={() => navigate("/dashboard")}>
+        <ListItemText primary="Dashboard" />
+      </ListItem>
+      <ListItem button onClick={() => navigate("/public-chat")}>
+        <ListItemText primary="Public Chat" />
+      </ListItem>
+      <ListItem button>
+        <ListItemText primary="Problem Statements" />
+      </ListItem>
+    </List>
       </Sidebar>
 
       {/* Main Content */}
