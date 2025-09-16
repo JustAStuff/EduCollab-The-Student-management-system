@@ -56,48 +56,28 @@ const PublicChat = () => {
     ]);
     if (!error) setNewMessage("");
   };
-
+function App(){
   return (
-    <Box  sx={{
-        minHeight: "100vh",
-        minWidth:"100vw",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        bgcolor: "#f5f5f5",
-      }}>
-      <Typography variant="h15" gutterBottom>
-        Public Chat
-      </Typography>
-
-      {/* Chat Messages */}
-      <Paper sx={{ p: 32, mb: 1, height: "20vh", overflowY: "auto" }}>
-        <List>
-          {messages.map((msg) => (
-            <ListItem key={msg.id}>
-              <ListItemText
-                primary={msg.user_name}
-                secondary={msg.content}
-              />
-            </ListItem>
-          ))}
-        </List>
-      </Paper>
-
-      {/* Input Box */}
-      <Box sx={{ display: "flex", gap: 2}}>
-        <TextField
-          fullWidth
-          label="Type a message..."
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-        />
-        <Button variant="contained" onClick={sendMessage}>
-          Send
-        </Button>
-      </Box>
-    </Box>
+    <div className="w-full flex h-screen justify-center items-center p-4">
+      <div className="border-[1px] border-gray-700 max-w-6xl w-full min-h-[600px] rounded-lg">
+        {/* Header */}
+        <div className="flex justify-between h-20 border-b-[1px] border-gray-700"> 
+          <div className="p-4" >
+            <p className="text-gray-300">Sign in as name</p>
+            <p className="text-gray-300 italic text-sm">3 users online</p>
+          </div>
+          <button className="m-2 sm:mr-4">Sing out</button>
+        </div>
+        {/* main chat */ }
+        <div></div>
+        {/*message input */}
+        <form className="flex flex-col sm:flex-row p-4 border-t-[1px] border-gray-700">
+          <input type ="text" placeholder="Type a message..." className="p-2 w-full bg-[#00000040] rounded-lg"/> 
+          <button className="mt-4 sm:mt-0 sm:ml-8  text-white max-h-12"> Send</button>
+        </form>
+      </div>
+    </div>
   );
 };
-
+} 
 export default PublicChat;
