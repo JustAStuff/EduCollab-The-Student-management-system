@@ -16,7 +16,6 @@ const PublicChat = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 
-  // Fetch old messages
   useEffect(() => {
     const fetchMessages = async () => {
       const { data, error } = await supabase
@@ -28,7 +27,6 @@ const PublicChat = () => {
     };
     fetchMessages();
 
-    // Subscribe to new messages
     const subscription = supabase
       .channel("public:messages")
       .on(
@@ -45,49 +43,62 @@ const PublicChat = () => {
     };
   }, []);
 
-  // Send message
   const sendMessage = async () => {
     if (newMessage.trim() === "") return;
     const { error } = await supabase.from("messages").insert([
       {
         content: newMessage,
-        user_name: "Guest", // Replace with logged-in username if you have auth
+        user_name: "Guest",
       },
     ]);
     if (!error) setNewMessage("");
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h5" gutterBottom>
-        Public Chat
-      </Typography>
+    <Box
+      sx={{
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#f5f5f5",
+      }}
+    >
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: "500px",
+          bgcolor: "white",
+          p: 3,
+          boxShadow: 3,
+          borderRadius: 2,
+        }}
+      >
+        <Typography variant="h5" gutterBottom align="center">
+          Public Chat
+        </Typography>
 
-      {/* Chat Messages */}
-      <Paper sx={{ p: 2, mb: 2, height: "60vh", overflowY: "auto" }}>
-        <List>
-          {messages.map((msg) => (
-            <ListItem key={msg.id}>
-              <ListItemText
-                primary={msg.user_name}
-                secondary={msg.content}
-              />
-            </ListItem>
-          ))}
-        </List>
-      </Paper>
+        <Paper sx={{ p: 2, mb: 2, height: "400px", overflowY: "auto" }}>
+          <List>
+            {messages.map((msg) => (
+              <ListItem key={msg.id}>
+                <ListItemText primary={msg.user_name} secondary={msg.content} />
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
 
-      {/* Input Box */}
-      <Box sx={{ display: "flex", gap: 2 }}>
-        <TextField
-          fullWidth
-          label="Type a message..."
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-        />
-        <Button variant="contained" onClick={sendMessage}>
-          Send
-        </Button>
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <TextField
+            fullWidth
+            label="Type a message..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+          />
+          <Button variant="contained" onClick={sendMessage}>
+            Send
+          </Button>
+        </Box>
       </Box>
     </Box>
   );
