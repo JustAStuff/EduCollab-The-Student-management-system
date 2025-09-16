@@ -1,5 +1,8 @@
 // src/pages/Dashboard.jsx
-import React from "react";
+import React, { useState } from "react";  // ✅ useState imported
+import { useNavigate } from 'react-router-dom';
+import PublicChat from '../PublicChat';  // ✅ PublicChat imported
+
 import {
   Box,
   Drawer,
@@ -38,6 +41,9 @@ const Sidebar = styled(Drawer)(() => ({
 }));
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const [view, setView] = useState('dashboard'); // ✅ view state to toggle between Dashboard and Chat
+
   return (
     <MainBox>
       {/* Sidebar */}
@@ -58,132 +64,140 @@ const Dashboard = () => {
           </Typography>
 
           <Divider sx={{ bgcolor: "rgba(255,255,255,0.3)", my: 2 }} />
-          <ListItem button>
+          
+          <ListItem button onClick={() => setView('dashboard')}>
             <ListItemText primary="Dashboard" />
           </ListItem>
-          <ListItem button>
+          
+          <ListItem button onClick={() => setView('chat')}>
             <ListItemText primary="Public Chat" />
           </ListItem>
+          
           <ListItem button>
             <ListItemText primary="Problem Statements" />
           </ListItem>
         </List>
       </Sidebar>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <Box component="main" sx={{ flexGrow: 1, p: 4, maxWidth: "100%" }}>
-        {/* Create Workspace */}
-        <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 3 }}>
-          <Button
-            variant="contained"
-            sx={{
-              bgcolor: "#106EBE",
-              "&:hover": { bgcolor: "#0A4E82" },
-              borderRadius: "8px",
-              px: 3,
-            }}
-            onClick={() => navigate("/create-workspace")}
-
-          >
-            Create Workspace
-          </Button>
-        </Box>
-
-        {/* Sections stacked vertically */}
-        <Grid container spacing={3} direction="column">
-          {/* Personal Statistics */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 3, borderRadius: "16px", boxShadow: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Personal Statistics
-              </Typography>
-              <Box
+        {view === 'dashboard' ? (
+          <>
+            {/* Create Workspace Button */}
+            <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 3 }}>
+              <Button
+                variant="contained"
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  mt: 2,
+                  bgcolor: "#106EBE",
+                  "&:hover": { bgcolor: "#0A4E82" },
+                  borderRadius: "8px",
+                  px: 3,
                 }}
+                onClick={() => navigate("/create-workspace")}
               >
-                <Box sx={{ position: "relative", display: "inline-flex" }}>
-                  <CircularProgress
-                    variant="determinate"
-                    value={0}
-                    size={100}
-                    thickness={5}
-                    sx={{ color: "#0FFCBE" }}
-                  />
+                Create Workspace
+              </Button>
+            </Box>
+
+            {/* Dashboard Sections */}
+            <Grid container spacing={3} direction="column">
+              {/* Personal Statistics */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3, borderRadius: "16px", boxShadow: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Personal Statistics
+                  </Typography>
                   <Box
                     sx={{
-                      top: 0,
-                      left: 0,
-                      bottom: 0,
-                      right: 0,
-                      position: "absolute",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
+                      justifyContent: "space-between",
+                      mt: 2,
                     }}
                   >
-                    <Typography variant="h6" color="text.secondary">
-                      0%
+                    <Box sx={{ position: "relative", display: "inline-flex" }}>
+                      <CircularProgress
+                        variant="determinate"
+                        value={0}
+                        size={100}
+                        thickness={5}
+                        sx={{ color: "#0FFCBE" }}
+                      />
+                      <Box
+                        sx={{
+                          top: 0,
+                          left: 0,
+                          bottom: 0,
+                          right: 0,
+                          position: "absolute",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Typography variant="h6" color="text.secondary">
+                          0%
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ flex: 1, ml: 4 }}>
+                      <Typography variant="body2">
+                        Tasks Completed This Week
+                      </Typography>
+                      <LinearProgress
+                        variant="determinate"
+                        value={0}
+                        sx={{
+                          mt: 1,
+                          height: 8,
+                          borderRadius: "5px",
+                          bgcolor: "#E0E0E0",
+                          "& .MuiLinearProgress-bar": { bgcolor: "#106EBE" },
+                        }}
+                      />
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ mt: 3 }}>
+                    <Typography variant="body2" gutterBottom>
+                      Current Project Roles
                     </Typography>
+                    {["Role 1", "Role 2", "Role 3"].map((role, i) => (
+                      <Box key={i} sx={{ mb: 2 }}>
+                        <Typography variant="caption">{role}</Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={0}
+                          sx={{
+                            mt: 0.5,
+                            height: 6,
+                            borderRadius: "5px",
+                            bgcolor: "#E0E0E0",
+                            "& .MuiLinearProgress-bar": { bgcolor: "#0FFCBE" },
+                          }}
+                        />
+                      </Box>
+                    ))}
                   </Box>
-                </Box>
-                <Box sx={{ flex: 1, ml: 4 }}>
-                  <Typography variant="body2">
-                    Tasks Completed This Week
+                </Paper>
+              </Grid>
+
+              {/* Recent Project Activity */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3, borderRadius: "16px", boxShadow: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Recent Project Activity
                   </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={0}
-                    sx={{
-                      mt: 1,
-                      height: 8,
-                      borderRadius: "5px",
-                      bgcolor: "#E0E0E0",
-                      "& .MuiLinearProgress-bar": { bgcolor: "#106EBE" },
-                    }}
-                  />
-                </Box>
-              </Box>
-
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="body2" gutterBottom>
-                  Current Project Roles
-                </Typography>
-                {["Role 1", "Role 2", "Role 3"].map((role, i) => (
-                  <Box key={i} sx={{ mb: 2 }}>
-                    <Typography variant="caption">{role}</Typography>
-                    <LinearProgress
-                      variant="determinate"
-                      value={0}
-                      sx={{
-                        mt: 0.5,
-                        height: 6,
-                        borderRadius: "5px",
-                        bgcolor: "#E0E0E0",
-                        "& .MuiLinearProgress-bar": { bgcolor: "#0FFCBE" },
-                      }}
-                    />
-                  </Box>
-                ))}
-              </Box>
-            </Paper>
-          </Grid>
-
-          {/* Recent Project Activity */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 3, borderRadius: "16px", boxShadow: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Recent Project Activity
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                No project activity yet.
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                    No project activity yet.
+                  </Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+          </>
+        ) : (
+          <PublicChat /> 
+        )}
       </Box>
     </MainBox>
   );
