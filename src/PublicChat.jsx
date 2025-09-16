@@ -1,6 +1,6 @@
 // src/pages/PublicChat.jsx
 import React, { useEffect, useState } from "react";
-import { supabase } from "./supabaseClient";
+import { supabase } from "../supabaseClient";
 import {
   Box,
   Typography,
@@ -57,5 +57,40 @@ const PublicChat = () => {
     if (!error) setNewMessage("");
   };
 
-}
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h5" gutterBottom>
+        Public Chat
+      </Typography>
+
+      {/* Chat Messages */}
+      <Paper sx={{ p: 2, mb: 2, height: "60vh", overflowY: "auto" }}>
+        <List>
+          {messages.map((msg) => (
+            <ListItem key={msg.id}>
+              <ListItemText
+                primary={msg.user_name}
+                secondary={msg.content}
+              />
+            </ListItem>
+          ))}
+        </List>
+      </Paper>
+
+      {/* Input Box */}
+      <Box sx={{ display: "flex", gap: 2 }}>
+        <TextField
+          fullWidth
+          label="Type a message..."
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+        />
+        <Button variant="contained" onClick={sendMessage}>
+          Send
+        </Button>
+      </Box>
+    </Box>
+  );
+};
+
 export default PublicChat;
