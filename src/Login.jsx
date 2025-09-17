@@ -26,7 +26,7 @@ function Login() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -35,6 +35,18 @@ function Login() {
       setMessage(error.message);
       setLoading(false);
     } else {
+      // Add/update user in users table
+      if (data.user) {
+        await supabase.from("users").upsert(
+          {
+            id: data.user.id,
+            email: data.user.email,
+            full_name: data.user.user_metadata?.full_name || data.user.email.split('@')[0],
+          },
+          { onConflict: "id" }
+        );
+      }
+
       setMessage("Login successful!");
       alert("Login successful!");
       setLoading(false);

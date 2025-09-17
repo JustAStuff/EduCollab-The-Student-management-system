@@ -1,74 +1,33 @@
 // src/pages/Dashboard.jsx
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
   Typography,
   Button,
-  Divider,
   Grid,
   Paper,
   CircularProgress,
   LinearProgress,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-
-const drawerWidth = 240;
+import Sidebar from "./Sidebar";   // ✅ Import Sidebar
 
 const MainBox = styled(Box)(() => ({
   display: "flex",
-  height: "100vh",   // full screen height
-  width: "100vw",    // full screen width
+  height: "100vh",
+  width: "100vw",
   backgroundColor: "#F9FAFB",
   fontFamily: "Roboto, sans-serif",
 }));
 
-const Sidebar = styled(Drawer)(() => ({
-  width: drawerWidth,
-  flexShrink: 0,
-  "& .MuiDrawer-paper": {
-    width: drawerWidth,
-    boxSizing: "border-box",
-    backgroundColor: "#106EBE",
-    color: "white",
-  },
-}));
-
 const Dashboard = () => {
+  const navigate = useNavigate();
+
   return (
     <MainBox>
       {/* Sidebar */}
-      <Sidebar variant="permanent" anchor="left">
-        <Box sx={{ p: 3 }}>
-          <Typography variant="h6" fontWeight="bold">
-            Dashboard
-          </Typography>
-        </Box>
-        <Divider sx={{ bgcolor: "rgba(255,255,255,0.3)" }} />
-        <List>
-          <Typography sx={{ px: 2, py: 1, fontSize: 13, opacity: 0.8 }}>
-            My Workspaces
-          </Typography>
-
-          <Typography sx={{ px: 2, py: 1, fontSize: 13, opacity: 0.8 }}>
-            Other Workspaces
-          </Typography>
-
-          <Divider sx={{ bgcolor: "rgba(255,255,255,0.3)", my: 2 }} />
-          <ListItem button>
-            <ListItemText primary="Dashboard" />
-          </ListItem>
-          <ListItem button>
-            <ListItemText primary="Public Chat" />
-          </ListItem>
-          <ListItem button>
-            <ListItemText primary="Problem Statements" />
-          </ListItem>
-        </List>
-      </Sidebar>
+      <Sidebar />
 
       {/* Main Content */}
       <Box component="main" sx={{ flexGrow: 1, p: 4, maxWidth: "100%" }}>
@@ -83,7 +42,6 @@ const Dashboard = () => {
               px: 3,
             }}
             onClick={() => navigate("/create-workspace")}
-
           >
             Create Workspace
           </Button>
@@ -152,7 +110,7 @@ const Dashboard = () => {
                 <Typography variant="body2" gutterBottom>
                   Current Project Roles
                 </Typography>
-                {["Role 1", "Role 2", "Role 3"].map((role, i) => (
+                {["Role 1", "Role 2"].map((role, i) => (
                   <Box key={i} sx={{ mb: 2 }}>
                     <Typography variant="caption">{role}</Typography>
                     <LinearProgress
