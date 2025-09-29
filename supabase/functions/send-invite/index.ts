@@ -41,7 +41,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { workspaceName, description, userId, emails } = body;
+    const { workspaceName, description, userId, emails, workspaceId } = body;
 
     // Basic validation - only workspaceName and userId are required
     if (!workspaceName || !userId) {
@@ -61,17 +61,36 @@ serve(async (req) => {
           .filter((e: string) => /\S+@\S+\.\S+/.test(e))
       : [];
 
-    // Create workspace in database
-    const { data: workspace, error: wsError } = await createWorkspaceInDB(workspaceName, description, userId);
-    if (wsError || !workspace) {
-      console.error("Workspace creation error:", wsError);
-      return new Response(
-        JSON.stringify({ error: "Could not create workspace" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    let workspace;
+    
+    if (workspaceId) {
+      // Adding members to existing workspace
+      const { data: existingWorkspace, error: fetchError } = await getWorkspaceById(workspaceId);
+      if (fetchError || !existingWorkspace) {
+        console.error("Workspace fetch error:", fetchError);
+        return new Response(
+          JSON.stringify({ error: "Could not find workspace" }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      workspace = existingWorkspace;
+    } else {
+      // Create new workspace
+      const { data: newWorkspace, error: wsError } = await createWorkspaceInDB(workspaceName, description, userId);
+      if (wsError || !newWorkspace) {
+        console.error("Workspace creation error:", wsError);
+        return new Response(
+          JSON.stringify({ error: "Could not create workspace" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      workspace = newWorkspace;
     }
 
     let emailsSent = 0;
@@ -100,9 +119,11 @@ serve(async (req) => {
         workspace: workspace, 
         invitationsSent: emailsSent, 
         totalInvitations: validEmails.length,
-        message: validEmails.length > 0 
-          ? `Workspace created successfully! ${emailsSent} invitations sent.`
-          : "Workspace created successfully!"
+        message: workspaceId 
+          ? `${emailsSent} invitations sent to existing workspace!`
+          : validEmails.length > 0 
+            ? `Workspace created successfully! ${emailsSent} invitations sent.`
+            : "Workspace created successfully!"
       }),
       {
         status: 200,
@@ -142,6 +163,22 @@ async function createWorkspaceInDB(
       },
     ])
     .select()
+    .single();
+
+  return { data, error };
+}
+
+// Helper to get workspace by ID
+async function getWorkspaceById(workspaceId: string) {
+  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+
+  const { data, error } = await supabaseClient
+    .from("workspaces")
+    .select("*")
+    .eq("id", workspaceId)
     .single();
 
   return { data, error };

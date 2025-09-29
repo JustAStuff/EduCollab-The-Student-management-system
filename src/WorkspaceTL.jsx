@@ -17,6 +17,10 @@ import {
   Alert,
   CircularProgress,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   Add,
@@ -26,8 +30,13 @@ import {
   Assignment,
   CheckCircle,
   Schedule,
+  PersonAdd,
+  Visibility,
+  ThumbUp,
+  ThumbDown,
 } from "@mui/icons-material";
 import Sidebar from "./Sidebar";
+import AddMembers from "./AddMembers";
 
 export default function WorkspaceTL() {
   const { id } = useParams();
@@ -40,6 +49,9 @@ export default function WorkspaceTL() {
   const [assigningTasks, setAssigningTasks] = useState(null);
   const [newTasks, setNewTasks] = useState([""]);
   const [submitting, setSubmitting] = useState(false);
+  const [addMembersOpen, setAddMembersOpen] = useState(false);
+  const [reviewingTask, setReviewingTask] = useState(null);
+  const [reviewComments, setReviewComments] = useState("");
 
   useEffect(() => {
     fetchWorkspaceData();
@@ -201,15 +213,72 @@ export default function WorkspaceTL() {
       total: memberTasks.length,
       todo: memberTasks.filter(t => t.status === "todo").length,
       inProgress: memberTasks.filter(t => t.status === "in_progress").length,
+      submitted: memberTasks.filter(t => t.status === "submitted").length,
+      needsRevision: memberTasks.filter(t => t.status === "needs_revision").length,
       completed: memberTasks.filter(t => t.status === "completed").length,
     };
   };
 
+  const handleTaskReview = async (taskId, action, comments = "") => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const newStatus = action === "approve" ? "completed" : "needs_revision";
+      
+      const updateData = {
+        status: newStatus,
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: user.id,
+        review_comments: comments || null,
+      };
+
+      if (newStatus === "completed") {
+        updateData.completed_at = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from("tasks")
+        .update(updateData)
+        .eq("id", taskId);
+
+      if (error) throw error;
+
+      alert(`Task ${action === "approve" ? "approved" : "sent back for revision"}!`);
+      setReviewingTask(null);
+      setReviewComments("");
+      fetchWorkspaceData();
+    } catch (error) {
+      console.error("Error reviewing task:", error);
+      alert("Failed to review task. Please try again.");
+    }
+  };
+
+  const downloadFile = async (fileUrl, fileName) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from("task-submissions")
+        .download(fileUrl);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      alert("Failed to download file");
+    }
+  };
+
   if (loading) {
     return (
-      <Box sx={{ display: "flex", height: "100vh", backgroundColor: "#F9FAFB" }}>
+      <Box sx={{ display: "flex", height: "100vh", backgroundColor: "#F9FAFB", width:"100vw" }}>
         <Sidebar />
-        <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center", alignItems: "center", width:"100vw" }}>
           <CircularProgress />
         </Box>
       </Box>
@@ -218,7 +287,7 @@ export default function WorkspaceTL() {
 
   if (error) {
     return (
-      <Box sx={{ display: "flex", height: "100vh", backgroundColor: "#F9FAFB" }}>
+      <Box sx={{ display: "flex", height: "100vh", backgroundColor: "#F9FAFB", width:"77vw" }}>
         <Sidebar />
         <Box sx={{ flexGrow: 1, p: 4 }}>
           <Alert severity="error">{error}</Alert>
@@ -228,10 +297,10 @@ export default function WorkspaceTL() {
   }
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#F9FAFB" }}>
+    <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#F9FAFB", width:"100vw" }}>
       <Sidebar />
       
-      <Box component="main" sx={{ flexGrow: 1, p: 4 }}>
+      <Box component="main" sx={{ flexGrow: 1, p: 4, width:"10vw"}}>
         <Paper sx={{ p: 4, borderRadius: "12px" }}>
           <Typography variant="h4" gutterBottom sx={{ color: "#106EBE", fontWeight: "bold" }}>
             {workspace?.name}
@@ -240,10 +309,20 @@ export default function WorkspaceTL() {
             {workspace?.description || "No description provided"}
           </Typography>
 
-          <Typography variant="h6" sx={{ mb: 2, display: "flex", alignItems: "center" }}>
-            <Assignment sx={{ mr: 1 }} />
-            Team Members ({members.length})
-          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+            <Typography variant="h6" sx={{ display: "flex", alignItems: "center" }}>
+              <Assignment sx={{ mr: 1 }} />
+              Team Members ({members.length})
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<PersonAdd />}
+              onClick={() => setAddMembersOpen(true)}
+              sx={{ bgcolor: "#28a745", "&:hover": { bgcolor: "#218838" } }}
+            >
+              Add Members
+            </Button>
+          </Box>
 
           {members.length === 0 ? (
             <Alert severity="info">No members have joined this workspace yet.</Alert>
@@ -369,23 +448,95 @@ export default function WorkspaceTL() {
                         ) : (
                           <List dense>
                             {getMemberTasks(member.user_id).map((task) => (
-                              <ListItem key={task.id} sx={{ pl: 0 }}>
-                                <ListItemText
-                                  primary={task.title}
-                                  secondary={`Status: ${task.status} • Created: ${new Date(task.created_at).toLocaleDateString()}`}
-                                />
-                                <Chip
-                                  size="small"
-                                  label={task.status.replace("_", " ")}
-                                  color={
-                                    task.status === "completed" ? "success" :
-                                    task.status === "in_progress" ? "warning" : "default"
-                                  }
-                                />
+                              <ListItem key={task.id} sx={{ pl: 0, flexDirection: "column", alignItems: "stretch" }}>
+                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                                  <ListItemText
+                                    primary={task.title}
+                                    secondary={`Status: ${task.status.replace("_", " ")} • Created: ${new Date(task.created_at).toLocaleDateString()}`}
+                                  />
+                                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                    <Chip
+                                      size="small"
+                                      label={task.status.replace("_", " ")}
+                                      color={
+                                        task.status === "completed" ? "success" :
+                                        task.status === "submitted" ? "info" :
+                                        task.status === "needs_revision" ? "error" :
+                                        task.status === "in_progress" ? "warning" : "default"
+                                      }
+                                    />
+                                    {task.status === "submitted" && task.submission_file_url && (
+                                      <Box sx={{ display: "flex", gap: 1 }}>
+                                        <Button
+                                          size="small"
+                                          startIcon={<Visibility />}
+                                          onClick={() => downloadFile(task.submission_file_url, task.submission_file_name)}
+                                        >
+                                          View
+                                        </Button>
+                                        <Button
+                                          size="small"
+                                          startIcon={<ThumbUp />}
+                                          color="success"
+                                          onClick={() => handleTaskReview(task.id, "approve")}
+                                        >
+                                          Approve
+                                        </Button>
+                                        <Button
+                                          size="small"
+                                          startIcon={<ThumbDown />}
+                                          color="error"
+                                          onClick={() => setReviewingTask(task.id)}
+                                        >
+                                          Revise
+                                        </Button>
+                                      </Box>
+                                    )}
+                                  </Box>
+                                </Box>
+                                {task.review_comments && (
+                                  <Box sx={{ mt: 1, p: 1, bgcolor: "#f5f5f5", borderRadius: 1 }}>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Review Comments: {task.review_comments}
+                                    </Typography>
+                                  </Box>
+                                )}
                               </ListItem>
                             ))}
                           </List>
                         )}
+
+                        {/* Review Dialog */}
+                        <Dialog
+                          open={reviewingTask !== null}
+                          onClose={() => setReviewingTask(null)}
+                          maxWidth="sm"
+                          fullWidth
+                        >
+                          <DialogTitle>Request Revision</DialogTitle>
+                          <DialogContent>
+                            <TextField
+                              fullWidth
+                              multiline
+                              rows={4}
+                              label="Comments for revision"
+                              value={reviewComments}
+                              onChange={(e) => setReviewComments(e.target.value)}
+                              placeholder="Explain what needs to be changed or improved..."
+                              sx={{ mt: 1 }}
+                            />
+                          </DialogContent>
+                          <DialogActions>
+                            <Button onClick={() => setReviewingTask(null)}>Cancel</Button>
+                            <Button
+                              variant="contained"
+                              color="error"
+                              onClick={() => handleTaskReview(reviewingTask, "revise", reviewComments)}
+                            >
+                              Send for Revision
+                            </Button>
+                          </DialogActions>
+                        </Dialog>
                       </Paper>
                     </Collapse>
                   </Box>
@@ -394,6 +545,15 @@ export default function WorkspaceTL() {
             </List>
           )}
         </Paper>
+
+        {/* Add Members Dialog */}
+        <AddMembers
+          workspaceId={id}
+          workspaceName={workspace?.name}
+          open={addMembersOpen}
+          onClose={() => setAddMembersOpen(false)}
+          onSuccess={fetchWorkspaceData}
+        />
       </Box>
     </Box>
   );

@@ -11,6 +11,7 @@ import {
   Divider,
   CircularProgress,
   ListItemButton,
+  Button,
 } from "@mui/material";
 import { supabase } from "./supabaseClient";
 
@@ -31,6 +32,8 @@ export default function Sidebar() {
         setUser(currentUser);
 
         if (!currentUser) {
+          setMyWorkspaces([]);
+          setOtherWorkspaces([]);
           setLoading(false);
           return;
         }
@@ -72,6 +75,15 @@ export default function Sidebar() {
 
     fetchWorkspaces();
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate("/");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
 
   return (
     <Drawer
@@ -193,6 +205,35 @@ export default function Sidebar() {
         <ListItemButton>
           <ListItemText primary="Problem Statements" />
         </ListItemButton>
+        
+        <Divider sx={{ bgcolor: "rgba(255,255,255,0.3)", my: 2 }} />
+        
+        {/* User Info and Logout */}
+        {user && (
+          <Box sx={{ p: 2 }}>
+            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)" }}>
+              Logged in as:
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 2, wordBreak: "break-word" }}>
+              {user.email}
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleLogout}
+              sx={{
+                color: "white",
+                borderColor: "rgba(255,255,255,0.5)",
+                "&:hover": {
+                  borderColor: "white",
+                  backgroundColor: "rgba(255,255,255,0.1)"
+                }
+              }}
+            >
+              Logout
+            </Button>
+          </Box>
+        )}
       </List>
     </Drawer>
   );
