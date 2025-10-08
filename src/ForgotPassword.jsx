@@ -24,7 +24,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "auto", paddingTop: "50px" }}>
+    <div style={{ maxWidth: "400px", margin: "auto", alignItems:"center", paddingLeft:"500px" }}>
       <Typography variant="h5" gutterBottom>
         Forgot Password
       </Typography>
