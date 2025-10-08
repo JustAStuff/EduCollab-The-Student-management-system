@@ -29,7 +29,7 @@ const Dashboard = () => {
       {/* Sidebar */}
       <Sidebar />
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <Box component="main" sx={{ flexGrow: 1, p: 4, maxWidth: "100%" }}>
         {/* Create Workspace */}
         <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 3 }}>
@@ -57,54 +57,75 @@ const Dashboard = () => {
               </Typography>
               <Box
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  mt: 2,
+                  bgcolor: "#106EBE",
+                  "&:hover": { bgcolor: "#0A4E82" },
+                  borderRadius: "8px",
+                  px: 3,
                 }}
+                onClick={() => navigate("/create-workspace")}
               >
-                <Box sx={{ position: "relative", display: "inline-flex" }}>
-                  <CircularProgress
-                    variant="determinate"
-                    value={0}
-                    size={100}
-                    thickness={5}
-                    sx={{ color: "#0FFCBE" }}
-                  />
+                Create Workspace
+              </Button>
+            </Box>
+
+            {/* Dashboard Sections */}
+            <Grid container spacing={3} direction="column">
+              {/* Personal Statistics */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3, borderRadius: "16px", boxShadow: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Personal Statistics
+                  </Typography>
                   <Box
                     sx={{
-                      top: 0,
-                      left: 0,
-                      bottom: 0,
-                      right: 0,
-                      position: "absolute",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
+                      justifyContent: "space-between",
+                      mt: 2,
                     }}
                   >
-                    <Typography variant="h6" color="text.secondary">
-                      0%
-                    </Typography>
+                    <Box sx={{ position: "relative", display: "inline-flex" }}>
+                      <CircularProgress
+                        variant="determinate"
+                        value={0}
+                        size={100}
+                        thickness={5}
+                        sx={{ color: "#0FFCBE" }}
+                      />
+                      <Box
+                        sx={{
+                          top: 0,
+                          left: 0,
+                          bottom: 0,
+                          right: 0,
+                          position: "absolute",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Typography variant="h6" color="text.secondary">
+                          0%
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ flex: 1, ml: 4 }}>
+                      <Typography variant="body2">
+                        Tasks Completed This Week
+                      </Typography>
+                      <LinearProgress
+                        variant="determinate"
+                        value={0}
+                        sx={{
+                          mt: 1,
+                          height: 8,
+                          borderRadius: "5px",
+                          bgcolor: "#E0E0E0",
+                          "& .MuiLinearProgress-bar": { bgcolor: "#106EBE" },
+                        }}
+                      />
+                    </Box>
                   </Box>
-                </Box>
-                <Box sx={{ flex: 1, ml: 4 }}>
-                  <Typography variant="body2">
-                    Tasks Completed This Week
-                  </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={0}
-                    sx={{
-                      mt: 1,
-                      height: 8,
-                      borderRadius: "5px",
-                      bgcolor: "#E0E0E0",
-                      "& .MuiLinearProgress-bar": { bgcolor: "#106EBE" },
-                    }}
-                  />
-                </Box>
-              </Box>
 
               <Box sx={{ mt: 3 }}>
                 <Typography variant="body2" gutterBottom>
@@ -125,23 +146,25 @@ const Dashboard = () => {
                       }}
                     />
                   </Box>
-                ))}
-              </Box>
-            </Paper>
-          </Grid>
+                </Paper>
+              </Grid>
 
-          {/* Recent Project Activity */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 3, borderRadius: "16px", boxShadow: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Recent Project Activity
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                No project activity yet.
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
+              {/* Recent Project Activity */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3, borderRadius: "16px", boxShadow: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Recent Project Activity
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                    No project activity yet.
+                  </Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+          </>
+        ) : (
+          <PublicChat /> 
+        )}
       </Box>
     </MainBox>
   );
