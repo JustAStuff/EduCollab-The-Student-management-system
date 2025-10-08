@@ -1,21 +1,43 @@
-// src/PublicChat.js
-import React, { useEffect, useState } from 'react';
-import { supabase } from './supabaseClient';
+// src/pages/PublicChat.jsx
+import React, { useEffect, useState } from "react";
+import { supabase } from "./supabaseClient";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Paper,
+  List,
+  ListItem,
+  ListItemText,
+} from "@mui/material";
 
-export default function PublicChat() {
+const PublicChat = () => {
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [username, setUsername] = useState('Guest' + Math.floor(Math.random() * 1000));
+  const [newMessage, setNewMessage] = useState("");
 
-  // Fetch messages on load
+  // Fetch old messages
   useEffect(() => {
+    const fetchMessages = async () => {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (!error) setMessages(data);
+    };
     fetchMessages();
 
+    // Subscribe to new messages
     const subscription = supabase
-      .channel('public:messages')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
-        setMessages((prev) => [...prev, payload.new]);
-      })
+      .channel("public:messages")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new]);
+        }
+      )
       .subscribe();
 
     return () => {
@@ -23,81 +45,52 @@ export default function PublicChat() {
     };
   }, []);
 
-  const fetchMessages = async () => {
-    const { data } = await supabase
-      .from('messages')
-      .select('*')
-      .order('created_at', { ascending: true });
-    setMessages(data);
-  };
-
+  // Send message
   const sendMessage = async () => {
-    if (newMessage.trim().length === 0) return;
-    await supabase.from('messages').insert([
-      { content: newMessage, username }
+    if (newMessage.trim() === "") return;
+    const { error } = await supabase.from("messages").insert([
+      {
+        content: newMessage,
+        user_name: "Guest", // Replace with logged-in username if you have auth
+      },
     ]);
-    setNewMessage('');
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') sendMessage();
+    if (!error) setNewMessage("");
   };
 
   return (
-    <div style={styles.container}>
-      <h3 style={styles.header}>Public Chat</h3>
-      <div style={styles.chatBox}>
-        {messages.map((msg) => (
-          <div key={msg.id} style={styles.message}>
-            <strong>{msg.username}:</strong> {msg.content}
-          </div>
-        ))}
-      </div>
-      <div style={styles.inputArea}>
-        <input
-          style={styles.input}
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h5" gutterBottom>
+        Public Chat
+      </Typography>
+
+      {/* Chat Messages */}
+      <Paper sx={{ p: 2, mb: 2, height: "60vh", overflowY: "auto" }}>
+        <List>
+          {messages.map((msg) => (
+            <ListItem key={msg.id}>
+              <ListItemText
+                primary={msg.user_name}
+                secondary={msg.content}
+              />
+            </ListItem>
+          ))}
+        </List>
+      </Paper>
+
+      {/* Input Box */}
+      <Box sx={{ display: "flex", gap: 2 }}>
+        <TextField
+          fullWidth
+          label="Type a message..."
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          onKeyDown={handleKeyPress}
-          placeholder="Type a message..."
         />
-        <button style={styles.button} onClick={sendMessage}>Send</button>
-      </div>
-    </div>
+        <Button variant="contained" onClick={sendMessage}>
+          Send
+        </Button>
+      </Box>
+    </Box>
   );
-}
-
-const styles = {
-  container: {
-    width: '400px',
-    margin: 'auto',
-    border: '1px solid #ccc',
-    padding: '10px',
-    borderRadius: '8px',
-    fontFamily: 'Arial, sans-serif'
-  },
-  header: {
-    textAlign: 'center'
-  },
-  chatBox: {
-    height: '300px',
-    overflowY: 'auto',
-    border: '1px solid #eee',
-    padding: '10px',
-    marginBottom: '10px',
-    background: '#f9f9f9'
-  },
-  message: {
-    marginBottom: '8px'
-  },
-  inputArea: {
-    display: 'flex'
-  },
-  input: {
-    flexGrow: 1,
-    padding: '8px'
-  },
-  button: {
-    padding: '8px 12px'
-  }
 };
+
+export default PublicChat;
