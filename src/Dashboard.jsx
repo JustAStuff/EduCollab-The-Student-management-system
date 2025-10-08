@@ -1,92 +1,61 @@
 // src/pages/Dashboard.jsx
-import React, { useState } from "react";  // ✅ useState imported
-import { useNavigate } from 'react-router-dom';
-import PublicChat from '../PublicChat';  // ✅ PublicChat imported
-
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
   Typography,
   Button,
-  Divider,
   Grid,
   Paper,
   CircularProgress,
   LinearProgress,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-
-const drawerWidth = 240;
+import Sidebar from "./Sidebar";   // ✅ Import Sidebar
 
 const MainBox = styled(Box)(() => ({
   display: "flex",
-  height: "100vh",   // full screen height
-  width: "100vw",    // full screen width
+  height: "100vh",
+  width: "100vw",
   backgroundColor: "#F9FAFB",
   fontFamily: "Roboto, sans-serif",
 }));
 
-const Sidebar = styled(Drawer)(() => ({
-  width: drawerWidth,
-  flexShrink: 0,
-  "& .MuiDrawer-paper": {
-    width: drawerWidth,
-    boxSizing: "border-box",
-    backgroundColor: "#106EBE",
-    color: "white",
-  },
-}));
-
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [view, setView] = useState('dashboard'); // ✅ view state to toggle between Dashboard and Chat
 
   return (
     <MainBox>
       {/* Sidebar */}
-      <Sidebar variant="permanent" anchor="left">
-        <Box sx={{ p: 3 }}>
-          <Typography variant="h6" fontWeight="bold">
-            Dashboard
-          </Typography>
-        </Box>
-        <Divider sx={{ bgcolor: "rgba(255,255,255,0.3)" }} />
-        <List>
-          <Typography sx={{ px: 2, py: 1, fontSize: 13, opacity: 0.8 }}>
-            My Workspaces
-          </Typography>
-
-          <Typography sx={{ px: 2, py: 1, fontSize: 13, opacity: 0.8 }}>
-            Other Workspaces
-          </Typography>
-
-          <Divider sx={{ bgcolor: "rgba(255,255,255,0.3)", my: 2 }} />
-          
-          <ListItem button onClick={() => setView('dashboard')}>
-            <ListItemText primary="Dashboard" />
-          </ListItem>
-          
-          <ListItem button onClick={() => setView('chat')}>
-            <ListItemText primary="Public Chat" />
-          </ListItem>
-          
-          <ListItem button>
-            <ListItemText primary="Problem Statements" />
-          </ListItem>
-        </List>
-      </Sidebar>
+      <Sidebar />
 
       {/* Main Content Area */}
       <Box component="main" sx={{ flexGrow: 1, p: 4, maxWidth: "100%" }}>
-        {view === 'dashboard' ? (
-          <>
-            {/* Create Workspace Button */}
-            <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 3 }}>
-              <Button
-                variant="contained"
+        {/* Create Workspace */}
+        <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 3 }}>
+          <Button
+            variant="contained"
+            sx={{
+              bgcolor: "#106EBE",
+              "&:hover": { bgcolor: "#0A4E82" },
+              borderRadius: "8px",
+              px: 3,
+            }}
+            onClick={() => navigate("/create-workspace")}
+          >
+            Create Workspace
+          </Button>
+        </Box>
+
+        {/* Sections stacked vertically */}
+        <Grid container spacing={3} direction="column">
+          {/* Personal Statistics */}
+          <Grid item xs={12}>
+            <Paper sx={{ p: 3, borderRadius: "16px", boxShadow: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Personal Statistics
+              </Typography>
+              <Box
                 sx={{
                   bgcolor: "#106EBE",
                   "&:hover": { bgcolor: "#0A4E82" },
@@ -158,26 +127,24 @@ const Dashboard = () => {
                     </Box>
                   </Box>
 
-                  <Box sx={{ mt: 3 }}>
-                    <Typography variant="body2" gutterBottom>
-                      Current Project Roles
-                    </Typography>
-                    {["Role 1", "Role 2", "Role 3"].map((role, i) => (
-                      <Box key={i} sx={{ mb: 2 }}>
-                        <Typography variant="caption">{role}</Typography>
-                        <LinearProgress
-                          variant="determinate"
-                          value={0}
-                          sx={{
-                            mt: 0.5,
-                            height: 6,
-                            borderRadius: "5px",
-                            bgcolor: "#E0E0E0",
-                            "& .MuiLinearProgress-bar": { bgcolor: "#0FFCBE" },
-                          }}
-                        />
-                      </Box>
-                    ))}
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="body2" gutterBottom>
+                  Current Project Roles
+                </Typography>
+                {["Role 1", "Role 2"].map((role, i) => (
+                  <Box key={i} sx={{ mb: 2 }}>
+                    <Typography variant="caption">{role}</Typography>
+                    <LinearProgress
+                      variant="determinate"
+                      value={0}
+                      sx={{
+                        mt: 0.5,
+                        height: 6,
+                        borderRadius: "5px",
+                        bgcolor: "#E0E0E0",
+                        "& .MuiLinearProgress-bar": { bgcolor: "#0FFCBE" },
+                      }}
+                    />
                   </Box>
                 </Paper>
               </Grid>
