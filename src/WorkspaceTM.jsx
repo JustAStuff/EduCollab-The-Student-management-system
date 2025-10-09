@@ -28,7 +28,27 @@ import {
   RadioButtonUnchecked,
   CloudUpload,
   AttachFile,
+  PictureAsPdf,
+  Description,
+  Image,
 } from "@mui/icons-material";
+import { validateFile, formatFileSize, generateFilePath, getFileIcon } from "./utils/fileUtils";
+import taskCategorizationService from "./services/TaskCategorizationService";
+
+// Helper function to get icon component
+const getFileIconComponent = (filename) => {
+  const iconName = getFileIcon(filename);
+  switch (iconName) {
+    case 'PictureAsPdf':
+      return <PictureAsPdf sx={{ fontSize: 16, mr: 0.5, color: '#d32f2f' }} />;
+    case 'Description':
+      return <Description sx={{ fontSize: 16, mr: 0.5, color: '#1976d2' }} />;
+    case 'Image':
+      return <Image sx={{ fontSize: 16, mr: 0.5, color: '#388e3c' }} />;
+    default:
+      return <AttachFile sx={{ fontSize: 16, mr: 0.5 }} />;
+  }
+};
 import Sidebar from "./Sidebar";
 
 export default function WorkspaceTM() {
@@ -194,21 +214,43 @@ export default function WorkspaceTM() {
   const handleFileUpload = async () => {
     if (!selectedFile || !uploadDialog.task) return;
 
+    // Validate file before upload
+    const validation = validateFile(selectedFile);
+    if (!validation.isValid) {
+      alert(validation.error);
+      return;
+    }
+
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const task = uploadDialog.task;
       
-      // Create file path: userId/taskId/filename
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${user.id}/${task.id}/${Date.now()}.${fileExt}`;
+      // Validate that the user is assigned to this task
+      if (task.assigned_to !== user.id) {
+        alert('You can only upload files for tasks assigned to you.');
+        return;
+      }
+      
+      // Generate file path using utility function
+      const fileName = generateFilePath(id, task.id, user.id, selectedFile.name);
       
       // Upload file to storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('task-submissions')
         .upload(fileName, selectedFile);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        if (uploadError.message.includes('duplicate')) {
+          alert('A file with this name already exists. Please try again.');
+        } else if (uploadError.message.includes('policy')) {
+          alert('You do not have permission to upload files for this task.');
+        } else {
+          alert(`Upload failed: ${uploadError.message}`);
+        }
+        return;
+      }
 
       // Update task status and file info
       const { error: updateError } = await supabase
@@ -222,7 +264,11 @@ export default function WorkspaceTM() {
         })
         .eq('id', task.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        alert('File uploaded but failed to update task status. Please contact support.');
+        return;
+      }
 
       alert('Task submitted successfully!');
       setUploadDialog({ open: false, task: null });
@@ -231,7 +277,7 @@ export default function WorkspaceTM() {
 
     } catch (error) {
       console.error('Error uploading file:', error);
-      alert('Failed to submit task. Please try again.');
+      alert(`Failed to submit task: ${error.message}`);
     } finally {
       setUploading(false);
     }
@@ -304,9 +350,70 @@ export default function WorkspaceTM() {
     }
   };
 
-  const currentTasks = tasks.filter(task => !["completed", "submitted"].includes(task.status));
-  const submittedTasks = tasks.filter(task => task.status === "submitted");
-  const completedTasks = tasks.filter(task => task.status === "completed");
+  // Use TaskCategorization service for consistent filtering with error handling
+  let activeTasks, pendingReviewTasks, completedTasks;
+  
+  try {
+    activeTasks = taskCategorizationService.safeOperation(
+      tasks, 
+      (t) => taskCategorizationService.getActiveTasks(t), 
+      'getActiveTasks'
+    );
+    
+    pendingReviewTasks = taskCategorizationService.safeOperation(
+      tasks, 
+      (t) => taskCategorizationService.getPendingReviewTasks(t), 
+      'getPendingReviewTasks'
+    );
+    
+    completedTasks = taskCategorizationService.safeOperation(
+      tasks, 
+      (t) => taskCategorizationService.getCompletedTasks(t), 
+      'getCompletedTasks'
+    );
+
+    // Validate task categorization consistency
+    const validation = taskCategorizationService.validateCategorization(tasks);
+    if (!validation.isValid) {
+      console.warn('WorkspaceTM: Task categorization validation failed:', validation.error);
+    }
+
+    // Get task counts for potential dashboard comparison
+    const workspaceCounts = taskCategorizationService.safeOperation(
+      tasks, 
+      (t) => taskCategorizationService.getTaskCounts(t), 
+      'getTaskCounts'
+    );
+    
+    // Store workspace counts for potential consistency checking
+    // This could be used by parent components to validate dashboard-workspace consistency
+    if (window.kiroTaskCounts) {
+      const dashboardCounts = window.kiroTaskCounts;
+      const consistencyCheck = taskCategorizationService.validateDashboardWorkspaceConsistency(
+        dashboardCounts, 
+        workspaceCounts
+      );
+      
+      if (!consistencyCheck.isConsistent) {
+        console.warn('WorkspaceTM: Dashboard-Workspace count inconsistency detected');
+      }
+    }
+    
+  } catch (error) {
+    console.error('WorkspaceTM: Error using TaskCategorization service:', error);
+    console.warn('WorkspaceTM: Using fallback task filtering');
+    
+    // Fallback logic
+    activeTasks = tasks.filter(task => 
+      task && ['todo', 'in_progress', 'needs_revision'].includes(task.status)
+    );
+    pendingReviewTasks = tasks.filter(task => 
+      task && task.status === 'submitted'
+    );
+    completedTasks = tasks.filter(task => 
+      task && task.status === 'completed'
+    );
+  }
 
   if (loading) {
     return (
@@ -343,19 +450,19 @@ export default function WorkspaceTM() {
             {workspace?.description || "No description provided"}
           </Typography>
 
-          {/* Current Tasks Section */}
+          {/* Active Tasks Section */}
           <Typography variant="h6" sx={{ mb: 2, display: "flex", alignItems: "center" }}>
             <Assignment sx={{ mr: 1 }} />
-            My Tasks ({currentTasks.length})
+            Active Tasks ({activeTasks.length})
           </Typography>
 
-          {currentTasks.length === 0 ? (
+          {activeTasks.length === 0 ? (
             <Alert severity="info" sx={{ mb: 4 }}>
               No tasks assigned yet!
             </Alert>
           ) : (
             <List sx={{ mb: 4 }}>
-              {currentTasks.map((task) => (
+              {activeTasks.map((task) => (
                 <ListItem
                   key={task.id}
                   sx={{
@@ -421,17 +528,17 @@ export default function WorkspaceTM() {
             </List>
           )}
 
-          {/* Submitted Tasks Section */}
-          {submittedTasks.length > 0 && (
+          {/* Pending Review Tasks Section */}
+          {pendingReviewTasks.length > 0 && (
             <>
               <Divider sx={{ my: 4 }} />
               <Typography variant="h6" sx={{ mb: 2, display: "flex", alignItems: "center" }}>
                 <CloudUpload sx={{ mr: 1, color: "#17a2b8" }} />
-                Submitted Tasks ({submittedTasks.length})
+                Pending Review Tasks ({pendingReviewTasks.length})
               </Typography>
 
               <List>
-                {submittedTasks.map((task) => (
+                {pendingReviewTasks.map((task) => (
                   <ListItem
                     key={task.id}
                     sx={{
@@ -453,7 +560,7 @@ export default function WorkspaceTM() {
                             </Typography>
                             {task.submission_file_name && (
                               <Typography variant="caption" sx={{ display: "flex", alignItems: "center" }}>
-                                <AttachFile sx={{ fontSize: 16, mr: 0.5 }} />
+                                {getFileIconComponent(task.submission_file_name)}
                                 {task.submission_file_name}
                               </Typography>
                             )}
@@ -564,12 +671,12 @@ export default function WorkspaceTM() {
             Upload your work result for: <strong>{uploadDialog.task?.title}</strong>
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Accepted formats: JPG, PNG, PDF (Max 10MB)
+            Accepted formats: JPG, PNG, PDF, DOC, DOCX (Max 10MB)
           </Typography>
           
           <Input
             type="file"
-            accept=".jpg,.jpeg,.png,.pdf"
+            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
             onChange={(e) => setSelectedFile(e.target.files[0])}
             sx={{ width: "100%" }}
           />
@@ -577,7 +684,7 @@ export default function WorkspaceTM() {
           {selectedFile && (
             <Box sx={{ mt: 2, p: 2, bgcolor: "#f5f5f5", borderRadius: 1 }}>
               <Typography variant="body2">
-                Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
               </Typography>
             </Box>
           )}
