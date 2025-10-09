@@ -9,7 +9,10 @@ import {
   Alert,
   Skeleton,
   Fade,
-  Container
+  Container,
+  Paper,
+  LinearProgress,
+  Card,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { Add, Dashboard as DashboardIcon } from "@mui/icons-material";
@@ -23,6 +26,9 @@ import WorkspaceParticipationCard from "./components/dashboard/WorkspaceParticip
 import RemainingTasksCard from "./components/dashboard/RemainingTasksCard";
 import AchievementsCard from "./components/dashboard/AchievementsCard";
 import RecentActivityCard from "./components/dashboard/RecentActivityCard";
+
+import { styled } from "@mui/material/styles";
+import Sidebar from "./Sidebar"; // ✅ Import Sidebar
 
 const MainBox = styled(Box)(() => ({
   display: "flex",
@@ -95,6 +101,13 @@ const Dashboard = () => {
       </MainBox>
     );
   }
+
+  // ✅ Optional: Logout handler
+  const handleLogout = () => {
+    // Example: Clear token and go to login
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
 
   return (
     <MainBox>

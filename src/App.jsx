@@ -7,23 +7,27 @@ import Dashboard from "./Dashboard";
 import CreateWorkspace from "./CreateWorkspace";
 import ResetPassword from "./ResetPassword";
 import ForgotPassword from "./ForgotPassword";
+import PublicChat from "./PublicChat";
 import JoinWorkspace from "./JoinWorkspace";
 import WorkspaceTL from "./WorkspaceTL";
 import WorkspaceTM from "./WorkspaceTM";
-// import ProblemStatement from "./ProblemStatement";
+import LandingPage from "./LandingPage";
+import ProblemStatement from "./ProblemStatement";
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Login />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/create-workspace" element={<CreateWorkspace />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/forgot-password" element={<ForgotPassword/>}/>
+      <Route path="/public-chat" element={<PublicChat />}/>
       <Route path="/join-workspace/:id" element={<JoinWorkspace />} />
       <Route path="/workspace/:id" element={<WorkspaceTL />} />
       <Route path="/workspace-member/:id" element={<WorkspaceTM />} />
-      {/* <Route path="/problem-statement" element={<ProblemStatement />} /> */}
+      <Route path="/problem-statements" element={<ProblemStatement />} />
 
      
     </Routes>

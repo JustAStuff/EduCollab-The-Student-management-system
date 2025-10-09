@@ -202,7 +202,7 @@ export default function Sidebar() {
         <ListItemButton onClick={() => navigate("/public-chat")}>
           <ListItemText primary="Public Chat" />
         </ListItemButton>
-        <ListItemButton>
+        <ListItemButton onClick={() => navigate("/problem-statements")}>
           <ListItemText primary="Problem Statements" />
         </ListItemButton>
         
