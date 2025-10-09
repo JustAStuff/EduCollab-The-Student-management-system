@@ -11,8 +11,7 @@ import PublicChat from "./PublicChat";
 import JoinWorkspace from "./JoinWorkspace";
 import WorkspaceTL from "./WorkspaceTL";
 import WorkspaceTM from "./WorkspaceTM";
-import ProblemStatement from "./ProblemStatement";
-
+// import ProblemStatement from "./ProblemStatement";
 function App() {
   return (
     <Routes>
@@ -26,7 +25,7 @@ function App() {
       <Route path="/join-workspace/:id" element={<JoinWorkspace />} />
       <Route path="/workspace/:id" element={<WorkspaceTL />} />
       <Route path="/workspace-member/:id" element={<WorkspaceTM />} />
-      <Route path="/problem-statement" element={<ProblemStatement />} />
+      {/* <Route path="/problem-statement" element={<ProblemStatement />} /> */}
 
      
     </Routes>

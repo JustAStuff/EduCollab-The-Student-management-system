@@ -34,7 +34,27 @@ import {
   Visibility,
   ThumbUp,
   ThumbDown,
+  PictureAsPdf,
+  Description,
+  Image,
+  AttachFile,
 } from "@mui/icons-material";
+import { getFileIcon, formatFileSize } from "./utils/fileUtils";
+
+// Helper function to get icon component
+const getFileIconComponent = (filename) => {
+  const iconName = getFileIcon(filename);
+  switch (iconName) {
+    case 'PictureAsPdf':
+      return <PictureAsPdf sx={{ fontSize: 16, mr: 0.5, color: '#d32f2f' }} />;
+    case 'Description':
+      return <Description sx={{ fontSize: 16, mr: 0.5, color: '#1976d2' }} />;
+    case 'Image':
+      return <Image sx={{ fontSize: 16, mr: 0.5, color: '#388e3c' }} />;
+    default:
+      return <AttachFile sx={{ fontSize: 16, mr: 0.5 }} />;
+  }
+};
 import Sidebar from "./Sidebar";
 import AddMembers from "./AddMembers";
 
@@ -52,6 +72,7 @@ export default function WorkspaceTL() {
   const [addMembersOpen, setAddMembersOpen] = useState(false);
   const [reviewingTask, setReviewingTask] = useState(null);
   const [reviewComments, setReviewComments] = useState("");
+  const [downloadingFile, setDownloadingFile] = useState(null);
 
   useEffect(() => {
     fetchWorkspaceData();
@@ -252,25 +273,54 @@ export default function WorkspaceTL() {
     }
   };
 
-  const downloadFile = async (fileUrl, fileName) => {
+  const downloadFile = async (fileUrl, fileName, taskId) => {
+    setDownloadingFile(taskId);
     try {
+      console.log('Download attempt:', {
+        fileUrl,
+        fileName,
+        taskId
+      });
+
+      // First, let's check if the file exists by listing files
+      const { data: listData, error: listError } = await supabase.storage
+        .from("task-submissions")
+        .list('', { limit: 100, search: fileName });
+
+      console.log('File list check:', { listData, listError });
+
+      // Try direct download first
       const { data, error } = await supabase.storage
         .from("task-submissions")
         .download(fileUrl);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Download error details:", error);
+        alert(`Download failed: ${error.message}\nFile path: ${fileUrl}`);
+        return;
+      }
 
+      // Create download link
       const url = URL.createObjectURL(data);
       const a = document.createElement("a");
       a.href = url;
       a.download = fileName;
+      a.style.display = "none";
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+
+
     } catch (error) {
       console.error("Error downloading file:", error);
-      alert("Failed to download file");
+      alert(`Failed to download file: ${error.message}`);
+    } finally {
+      setDownloadingFile(null);
     }
   };
 
@@ -469,10 +519,11 @@ export default function WorkspaceTL() {
                                       <Box sx={{ display: "flex", gap: 1 }}>
                                         <Button
                                           size="small"
-                                          startIcon={<Visibility />}
-                                          onClick={() => downloadFile(task.submission_file_url, task.submission_file_name)}
+                                          startIcon={downloadingFile === task.id ? <CircularProgress size={16} /> : <Visibility />}
+                                          onClick={() => downloadFile(task.submission_file_url, task.submission_file_name, task.id)}
+                                          disabled={downloadingFile === task.id}
                                         >
-                                          View
+                                          {downloadingFile === task.id ? "Loading..." : "View"}
                                         </Button>
                                         <Button
                                           size="small"
