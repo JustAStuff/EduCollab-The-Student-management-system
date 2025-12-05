@@ -5,9 +5,9 @@
 **Live Demo**: [Your Vercel URL - Add after deployment]
 
 **Test Credentials**:
-- **Team Leader**: leader@educollab.demo / LeaderDemo2025!
-- **Team Member**: member@educollab.demo / MemberDemo2025!
-
+- **Team Leader**: ravipriyadarshini1605@gmail.com / HiTest@123
+- **Team Member_1**: priyapaapaal16@gmail.com / HiTest@123
+- **Team Member_1**: priyadippy16@gmail.com / HiTest@123
 Or create your own account to explore freely!
 
 ## 🎯 What to Test
@@ -23,7 +23,7 @@ Or create your own account to explore freely!
 **As Team Leader:**
 1. Create a new workspace
 2. Add tasks with descriptions and deadlines
-3. View workspace dashboard
+3. View workspace dashboard (shows workspace details like name, team mambers and their task details, quick task creation task bar where any user can create and assign tasks)
 4. Check team member list
 
 **As Team Member:**
