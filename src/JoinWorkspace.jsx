@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
+import LayoutContainer from "./components/layout/LayoutContainer";
 import {
     Box,
     Card,
@@ -74,18 +75,30 @@ export default function JoinWorkspace() {
                 console.error("Error updating users table:", userInsertError);
             }
 
-            // 2. Insert member into workspace_members table
-            const { error: joinError } = await supabase
-                .from("workspace_members")
-                .insert([{
-                    workspace_id: id,
-                    user_id: user.id,
-                    role: 'member',
-                    joined_at: new Date().toISOString()
-                }]);
+            // 2. Check if user is the workspace owner first
+            const { data: workspaceData } = await supabase
+                .from("workspaces")
+                .select("created_by")
+                .eq("id", id)
+                .single();
 
-            if (joinError && !joinError.message.includes('duplicate')) {
-                throw joinError;
+            // If user is the owner, don't add them as a member
+            if (workspaceData && workspaceData.created_by === user.id) {
+                console.log("User is the workspace owner, skipping member insertion");
+            } else {
+                // Insert member into workspace_members table only if not the owner
+                const { error: joinError } = await supabase
+                    .from("workspace_members")
+                    .insert([{
+                        workspace_id: id,
+                        user_id: user.id,
+                        role: 'member',
+                        joined_at: new Date().toISOString()
+                    }]);
+
+                if (joinError && !joinError.message.includes('duplicate')) {
+                    throw joinError;
+                }
             }
 
             // 3. Update workspace_invitations table - change status from 'pending' to 'accepted'
@@ -105,13 +118,6 @@ export default function JoinWorkspace() {
             }
 
             // Navigate to appropriate workspace view
-            // Check if user is the workspace owner
-            const { data: workspaceData } = await supabase
-                .from("workspaces")
-                .select("created_by")
-                .eq("id", id)
-                .single();
-
             if (workspaceData && workspaceData.created_by === user.id) {
                 navigate(`/workspace/${id}`); // Owner view
             } else {
@@ -131,24 +137,20 @@ export default function JoinWorkspace() {
 
     if (loading) {
         return (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+            <Box className="layout-container layout-flex-center">
                 <CircularProgress />
             </Box>
         );
     }
 
     return (
-        <Box
-            sx={{
-                height: "100vh",
-                width: "100vw",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                bgcolor: "#f4f6f8",
-            }}
-        >
-            <Card sx={{ maxWidth: 500, p: 3, boxShadow: 3, borderRadius: "16px" }}>
+        <Box className="layout-container layout-flex-center">
+            <LayoutContainer 
+                maxWidth="md" 
+                padding="default"
+                sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}
+            >
+                <Card sx={{ maxWidth: 500, p: 3, boxShadow: 3, borderRadius: "16px" }}>
                 <CardContent>
                     {error ? (
                         <>
@@ -207,6 +209,7 @@ export default function JoinWorkspace() {
                     )}
                 </CardContent>
             </Card>
+            </LayoutContainer>
         </Box>
     );
 }

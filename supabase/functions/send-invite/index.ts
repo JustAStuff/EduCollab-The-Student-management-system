@@ -13,11 +13,12 @@ if (!SENDGRID_API_KEY) {
 const VERIFIED_SENDER = "ravipriyadarshini1605@gmail.com";
 
 serve(async (req) => {
-  // CORS headers
+  // CORS headers - More flexible for development and production
   const corsHeaders = {
-    "Access-Control-Allow-Origin": SITE_URL,
+    "Access-Control-Allow-Origin": "*", // Allow all origins for now
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "authorization, content-type",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Max-Age": "86400", // Cache preflight for 24 hours
   };
 
   // Handle preflight
@@ -55,14 +56,18 @@ serve(async (req) => {
     }
 
     // Filter and clean emails (emails are optional)
-    const validEmails = (emails && Array.isArray(emails)) 
+    const validEmails = (emails && Array.isArray(emails))
       ? emails
-          .map((e: any) => typeof e === "string" ? e.trim() : "")
-          .filter((e: string) => /\S+@\S+\.\S+/.test(e))
+        .map((e: any) => typeof e === "string" ? e.trim().toLowerCase() : "")
+        .filter((e: string) => {
+          // More robust email validation
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          return emailRegex.test(e) && e.length <= 254; // RFC 5321 limit
+        })
       : [];
 
     let workspace;
-    
+
     if (workspaceId) {
       // Adding members to existing workspace
       const { data: existingWorkspace, error: fetchError } = await getWorkspaceById(workspaceId);
@@ -114,14 +119,14 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        workspace: workspace, 
-        invitationsSent: emailsSent, 
+      JSON.stringify({
+        success: true,
+        workspace: workspace,
+        invitationsSent: emailsSent,
         totalInvitations: validEmails.length,
-        message: workspaceId 
+        message: workspaceId
           ? `${emailsSent} invitations sent to existing workspace!`
-          : validEmails.length > 0 
+          : validEmails.length > 0
             ? `Workspace created successfully! ${emailsSent} invitations sent.`
             : "Workspace created successfully!"
       }),
@@ -136,7 +141,7 @@ serve(async (req) => {
       JSON.stringify({ error: "Internal Server Error" }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }
@@ -153,7 +158,8 @@ async function createWorkspaceInDB(
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-  const { data, error } = await supabaseClient
+  // Start a transaction to create workspace and add owner as member
+  const { data: workspace, error: workspaceError } = await supabaseClient
     .from("workspaces")
     .insert([
       {
@@ -165,7 +171,28 @@ async function createWorkspaceInDB(
     .select()
     .single();
 
-  return { data, error };
+  if (workspaceError || !workspace) {
+    return { data: null, error: workspaceError };
+  }
+
+  // Add the workspace creator as an owner member
+  const { error: memberError } = await supabaseClient
+    .from("workspace_members")
+    .insert([
+      {
+        workspace_id: workspace.id,
+        user_id: userId,
+        role: "owner",
+        accepted_at: new Date().toISOString(),
+      },
+    ]);
+
+  if (memberError) {
+    console.error("Error adding workspace owner as member:", memberError);
+    // Don't fail the entire operation, but log the error
+  }
+
+  return { data: workspace, error: null };
 }
 
 // Helper to get workspace by ID
@@ -191,6 +218,31 @@ async function insertInvitationInDB(workspaceId: string, email: string) {
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
+  // Check if invitation already exists
+  const { data: existingInvitation } = await supabaseClient
+    .from("workspace_invitations")
+    .select("id, status")
+    .eq("workspace_id", workspaceId)
+    .eq("email", email)
+    .single();
+
+  if (existingInvitation) {
+    // Update existing invitation if it was previously declined or expired
+    if (existingInvitation.status !== "pending") {
+      const { error } = await supabaseClient
+        .from("workspace_invitations")
+        .update({
+          status: "pending",
+          created_at: new Date().toISOString(),
+        })
+        .eq("id", existingInvitation.id);
+      return { error };
+    }
+    // If already pending, don't create duplicate
+    return { error: null };
+  }
+
+  // Create new invitation
   const { error } = await supabaseClient
     .from("workspace_invitations")
     .insert([
@@ -222,33 +274,63 @@ async function sendInvitationEmail(
     ],
     from: {
       email: VERIFIED_SENDER,
+      name: "EduCollab Team",
     },
     content: [
       {
         type: "text/html",
         value: `
-          <p>You have been invited to join <b>${workspaceName}</b>.</p>
-          ${description ? `<p>${description}</p>` : ""}
-          <p><a href="${inviteLink}">Click here to accept invite</a></p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #106EBE;">You're invited to join ${workspaceName}!</h2>
+            <p>You have been invited to collaborate in the <strong>${workspaceName}</strong> workspace on EduCollab.</p>
+            ${description ? `<p style="background-color: #f5f5f5; padding: 15px; border-radius: 5px;"><em>${description}</em></p>` : ""}
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${inviteLink}" 
+                 style="background-color: #106EBE; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                Accept Invitation
+              </a>
+            </div>
+            <p style="color: #666; font-size: 14px;">
+              If the button doesn't work, copy and paste this link into your browser:<br>
+              <a href="${inviteLink}">${inviteLink}</a>
+            </p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="color: #999; font-size: 12px;">
+              This invitation was sent by EduCollab. If you didn't expect this invitation, you can safely ignore this email.
+            </p>
+          </div>
         `,
       },
     ],
   };
 
-  const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${SENDGRID_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(emailPayload),
-  });
+  try {
+    const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${SENDGRID_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(emailPayload),
+    });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error("SendGrid error:", response.status, errText);
-    throw new Error(`SendGrid send failed: ${response.status}`);
+    if (!response.ok) {
+      let errorMessage = `SendGrid API error: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.errors?.[0]?.message || errorMessage;
+      } catch (parseError) {
+        const errorText = await response.text();
+        errorMessage = errorText || errorMessage;
+      }
+
+      console.error("SendGrid error:", response.status, errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Email sending error:", error);
+    throw error;
   }
-
-  return { success: true };
 }

@@ -1,3 +1,6 @@
+/* Import layout styles */
+@import './styles/layout.css';
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

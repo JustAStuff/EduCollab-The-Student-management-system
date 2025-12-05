@@ -1,0 +1,15 @@
+{
+  "name": "Validate SQL Migrations",
+  "description": "Validates SQL migration syntax when migration files are saved",
+  "trigger": {
+    "type": "onSave",
+    "filePattern": "supabase/migrations/**/*.sql"
+  },
+  "actions": [
+    {
+      "type": "agent",
+      "prompt": "Review this SQL migration file for syntax errors, potential issues, and best practices. Check for: 1) Proper transaction handling, 2) Rollback safety, 3) Index creation, 4) RLS policies, 5) Foreign key constraints. Provide a brief summary of any issues found."
+    }
+  ],
+  "enabled": true
+}

@@ -183,31 +183,26 @@ const RecentActivityCard = ({ taskMetrics, workspaceStats, loading = false }) =>
                         {activity.icon}
                       </Avatar>
                     </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Typography variant="body2" fontWeight="bold">
-                          {activity.title}
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
+                        {activity.title}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {activity.subtitle}
                         </Typography>
-                      }
-                      secondary={
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">
-                            {activity.subtitle}
-                          </Typography>
-                          <Chip
-                            label={activity.time}
-                            size="small"
-                            sx={{
-                              ml: 1,
-                              height: 20,
-                              fontSize: '0.7rem',
-                              bgcolor: `${activity.color}20`,
-                              color: activity.color
-                            }}
-                          />
-                        </Box>
-                      }
-                    />
+                        <Chip
+                          label={activity.time}
+                          size="small"
+                          sx={{
+                            height: 20,
+                            fontSize: '0.7rem',
+                            bgcolor: `${activity.color}20`,
+                            color: activity.color
+                          }}
+                        />
+                      </Box>
+                    </Box>
                   </ListItem>
                   {index < recentActivities.length - 1 && (
                     <Divider sx={{ my: 0.5, opacity: 0.3 }} />

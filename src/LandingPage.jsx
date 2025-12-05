@@ -40,9 +40,6 @@ const LandingPage = () => {
     navigate("/login");
   };
 
-  const handleLogout = () => {
-    navigate("/");
-  };
 
   const handleAboutUs = () => {
     navigate("/about-us");
@@ -81,15 +78,12 @@ const LandingPage = () => {
           <Button color="inherit" onClick={handleHome}>
             Home
           </Button>
-          <Button color="inherit" onClick={handleLogin}>
-            Login
-          </Button>
-          <Button color="inherit" onClick={handleLogout}>
-            Logout
-          </Button>
           <Button color="inherit" onClick={handleAboutUs}>
             About Us
           </Button>
+          <Button color="inherit" onClick={handleLogin}>
+            Login
+          </Button>      
         </Toolbar>
       </AppBar>
 

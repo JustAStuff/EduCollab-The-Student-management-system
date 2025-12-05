@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "./supabaseClient";
 import { useNavigate } from "react-router-dom";
+import LayoutContainer from "./components/layout/LayoutContainer";
 import {
   Box,
   Card,
@@ -46,7 +47,7 @@ function Register() {
       email: formData.email,
       password: formData.password,
       options: {
-        emailRedirectTo: "http://localhost:5173/",
+        emailRedirectTo: "http://localhost:5173/email-confirmation",
       },
     });
 
@@ -72,23 +73,19 @@ function Register() {
       return;
     }
 
-    alert("Registration successful! Check your email to confirm.");
+    alert("Registration successful! Check your email to confirm your account before logging in.");
     setLoading(false);
-    navigate("/");
+    navigate("/login");
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "90vh",
-        minWidth:"100vw",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        bgcolor: "#f5f5f5",
-      }}
-    >
-      <Card sx={{margin: "auto", alignItems:"center", paddingLeft:"500px", width: 400, p: 3, maxHeight:"fit-content"}}>
+    <Box className="layout-container layout-flex-center">
+      <LayoutContainer 
+        maxWidth="md" 
+        padding="default"
+        sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}
+      >
+        <Card sx={{ width: 400, p: 3, margin: "auto" }}>
         <CardContent>
           <Typography variant="h5" align="center" gutterBottom>
             Registration
@@ -197,6 +194,7 @@ function Register() {
           </Typography>
         </CardContent>
       </Card>
+      </LayoutContainer>
     </Box>
   );
 }

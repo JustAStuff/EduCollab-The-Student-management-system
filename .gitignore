@@ -94,13 +94,12 @@ desktop.ini
 # yarn.lock
 # pnpm-lock.yaml
 
-# Kiro AI assistant files (keeping them private)
-.kiro/
-# Uncommented to exclude Kiro specs and configurations from version control
+# IMPORTANT: .kiro/ directory MUST be included for Kiroween hackathon submission
+# DO NOT add .kiro/ to .gitignore as it contains specs, hooks, and steering docs
+# that are required for judging
 
-# Documentation files (keeping them private)
-docs/
-# Exclude documentation and development notes from version control
+# Documentation is also required for the hackathon
+# DO NOT add docs/ to .gitignore
 
 # Database files (if using local SQLite for development)
 *.db
@@ -267,3 +266,8 @@ dist/
 
 # Uncomment the following line if you want to ignore all log files
 # *.log
+
+# Temporary hackathon preparation guides (not needed in repo)
+COMMIT_AND_PUSH.md
+PUSH_TO_GITHUB_NOW.md
+FINAL_VERIFICATION.md

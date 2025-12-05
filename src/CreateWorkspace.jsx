@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { Add, Delete } from "@mui/icons-material";
 import Sidebar from "./Sidebar";
+import LayoutContainer from "./components/layout/LayoutContainer";
 import { supabase } from "./supabaseClient";
 
 export default function CreateWorkspace() {
@@ -59,13 +60,17 @@ export default function CreateWorkspace() {
 
       const validEmails = emails.filter((email) => email.trim() !== "");
 
+      // Use environment variable for functions URL with fallback
+      const functionsUrl = import.meta.env.VITE_FUNCTIONS_URL || 
+                          `${import.meta.env.VITE_SUPABASE_URL || 'https://nwfaaiixizernafxdddm.supabase.co'}/functions/v1`;
+
       const res = await fetch(
-        "https://nwfaaiixizernafxdddm.supabase.co/functions/v1/send-invite",
+        `${functionsUrl}/send-invite`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
+            "Authorization": `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
             workspaceName: workspaceName.trim(),
@@ -77,59 +82,87 @@ export default function CreateWorkspace() {
       );
 
       if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(
-          `HTTP error! status: ${res.status}, message: ${errorText}`
-        );
+        let errorMessage = `HTTP error! status: ${res.status}`;
+        
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          // If we can't parse JSON, try to get text
+          try {
+            const errorText = await res.text();
+            errorMessage = errorText || errorMessage;
+          } catch (textError) {
+            // Use the status-based message
+          }
+        }
+
+        // Handle specific error types
+        if (res.status === 0 || res.status === 404) {
+          throw new Error("Network error: Unable to connect to the server. Please check your internet connection and try again.");
+        } else if (res.status === 403) {
+          throw new Error("Authentication error: Please log out and log back in.");
+        } else if (res.status === 500) {
+          throw new Error("Server error: Please try again in a few moments.");
+        } else {
+          throw new Error(errorMessage);
+        }
       }
 
       const data = await res.json();
       if (data.success) {
         alert(
-          `Workspace "${workspaceName}" created successfully! ${data.invitationsSent} invitations sent.`
+          data.message || 
+          `Workspace "${workspaceName}" created successfully! ${data.invitationsSent || 0} invitations sent.`
         );
         setWorkspaceName("");
         setDescription("");
         setEmails([""]);
       } else {
-        alert("Error: " + data.error);
+        alert("Error: " + (data.error || "Unknown error occurred"));
       }
     } catch (error) {
       console.error("Error creating workspace:", error);
-      alert("Failed to create workspace: " + error.message);
+      
+      // Handle different types of errors with user-friendly messages
+      let userMessage = "Failed to create workspace: ";
+      
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        userMessage += "Network connection error. Please check your internet connection and try again.";
+      } else if (error.message.includes('CORS')) {
+        userMessage += "Connection error. Please refresh the page and try again.";
+      } else if (error.message.includes('Network error')) {
+        userMessage += error.message;
+      } else {
+        userMessage += error.message || "An unexpected error occurred. Please try again.";
+      }
+      
+      alert(userMessage);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", backgroundColor: "#F9FAFB" }}>
+    <Box className="layout-container">
       {/* Sidebar */}
       <Sidebar />
 
       {/* Main Content */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: { xs: 2, sm: 4 },
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          width:"77vw",
+      <LayoutContainer 
+        maxWidth="xl" 
+        padding="default"
+        sx={{ 
+          display: "flex", 
+          justifyContent: "center", 
+          alignItems: "center" 
         }}
       >
-        <Paper
+        <Paper className="layout-content-wrapper"
           sx={{
-            p: { xs: 2, sm: 4 },
-            borderRadius: "12px",
-            width: "100%",
-            maxWidth: "90vw", // keeps it from being too wide
             minHeight: "80vh",
-            mx: "auto",
             display: "flex",
             flexDirection: "column",
-            boxSizing: "border-box",
           }}
         >
           <Typography variant="h6" gutterBottom>
@@ -204,7 +237,7 @@ export default function CreateWorkspace() {
             </Button>
           </Box>
         </Paper>
-      </Box>
+      </LayoutContainer>
     </Box>
   );
 }

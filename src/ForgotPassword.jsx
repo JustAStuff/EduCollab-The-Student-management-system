@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { supabase } from "./supabaseClient";
-import { TextField, Button, Typography, Alert } from "@mui/material";
+import LayoutContainer from "./components/layout/LayoutContainer";
+import { Box, Card, CardContent, TextField, Button, Typography, Alert } from "@mui/material";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -24,33 +25,43 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "auto", alignItems:"center", paddingLeft:"500px" }}>
-      <Typography variant="h5" gutterBottom>
-        Forgot Password
-      </Typography>
-      <form onSubmit={handleSubmit}>
-        <TextField
-          label="Email"
-          fullWidth
-          margin="normal"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <Button type="submit" variant="contained" color="primary" fullWidth>
-          Send Reset Link
-        </Button>
-      </form>
-      {message && (
-        <Alert severity="success" style={{ marginTop: "15px" }}>
-          {message}
-        </Alert>
-      )}
-      {error && (
-        <Alert severity="error" style={{ marginTop: "15px" }}>
-          {error}
-        </Alert>
-      )}
-    </div>
+    <Box className="layout-container layout-flex-center">
+      <LayoutContainer 
+        maxWidth="md" 
+        padding="default"
+        sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}
+      >
+        <Card sx={{ width: 400, p: 3, margin: "auto" }}>
+          <CardContent>
+            <Typography variant="h5" gutterBottom align="center">
+              Forgot Password
+            </Typography>
+            <form onSubmit={handleSubmit}>
+              <TextField
+                label="Email"
+                fullWidth
+                margin="normal"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+                Send Reset Link
+              </Button>
+            </form>
+            {message && (
+              <Alert severity="success" sx={{ mt: 2 }}>
+                {message}
+              </Alert>
+            )}
+            {error && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error}
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      </LayoutContainer>
+    </Box>
   );
 }

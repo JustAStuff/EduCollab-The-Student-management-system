@@ -1,6 +1,6 @@
 // src/Sidebar.jsx
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
   Drawer,
@@ -12,17 +12,24 @@ import {
   CircularProgress,
   ListItemButton,
   Button,
+  Collapse,
 } from "@mui/material";
+import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { supabase } from "./supabaseClient";
+import problemStatementService from "./services/ProblemStatementService";
 
 const drawerWidth = 240;
 
 export default function Sidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [myWorkspaces, setMyWorkspaces] = useState([]);
   const [otherWorkspaces, setOtherWorkspaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [problemStatementsOpen, setProblemStatementsOpen] = useState(false);
+
+  const [problemStatements, setProblemStatements] = useState([]);
 
   useEffect(() => {
     const fetchWorkspaces = async () => {
@@ -74,7 +81,21 @@ export default function Sidebar() {
     };
 
     fetchWorkspaces();
+    fetchProblemStatements();
   }, []);
+
+  const fetchProblemStatements = async () => {
+    try {
+      const { data, error} = await problemStatementService.getAllProblemStatements();
+      if (!error && data) {
+        // Show all problems if on problem statements page, otherwise limit to 4
+        const isOnProblemStatementsPage = location.pathname === '/problem-statements';
+        setProblemStatements(isOnProblemStatementsPage ? data : data.slice(0, 4));
+      }
+    } catch (error) {
+      console.error('Error fetching problem statements:', error);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -83,6 +104,14 @@ export default function Sidebar() {
     } catch (error) {
       console.error("Error logging out:", error);
     }
+  };
+
+  const handleProblemStatementClick = (problemId) => {
+    navigate(`/problem-statements?selected=${problemId}`);
+  };
+
+  const toggleProblemStatements = () => {
+    setProblemStatementsOpen(!problemStatementsOpen);
   };
 
   return (
@@ -121,11 +150,7 @@ export default function Sidebar() {
             <ListItemButton
               key={workspace.id}
               onClick={() => {
-                if (workspace.created_by === user?.id) {
-                  navigate(`/workspace/${workspace.id}`); // Owner view
-                } else {
-                  navigate(`/workspace-member/${workspace.id}`); // Member view
-                }
+                navigate(`/workspace-dashboard/${workspace.id}`); // Go to workspace dashboard first
               }}
               sx={{
                 pl: 3,
@@ -202,9 +227,37 @@ export default function Sidebar() {
         <ListItemButton onClick={() => navigate("/public-chat")}>
           <ListItemText primary="Public Chat" />
         </ListItemButton>
-        <ListItemButton onClick={() => navigate("/problem-statements")}>
-          <ListItemText primary="Problem Statements" />
+        
+        <ListItemButton onClick={() => navigate("/my-workspaces")}>
+          <ListItemText primary="My Workspaces" />
         </ListItemButton>
+        
+        {/* Problem Statements Section */}
+        <ListItemButton onClick={toggleProblemStatements}>
+          <ListItemText primary="Problem Statements" />
+          {problemStatementsOpen ? <ExpandLess /> : <ExpandMore />}
+        </ListItemButton>
+        
+        <Collapse in={problemStatementsOpen} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            {problemStatements.map((problem) => (
+              <ListItemButton
+                key={problem.id}
+                sx={{ pl: 4 }}
+                onClick={() => handleProblemStatementClick(problem.id)}
+              >
+                <Box sx={{ width: "100%" }}>
+                  <Typography variant="body2" sx={{ fontSize: "0.8rem", fontWeight: 500 }}>
+                    {problem.title}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.7rem" }}>
+                    {problem.difficulty} • {problem.duration}
+                  </Typography>
+                </Box>
+              </ListItemButton>
+            ))}
+          </List>
+        </Collapse>
         
         <Divider sx={{ bgcolor: "rgba(255,255,255,0.3)", my: 2 }} />
         

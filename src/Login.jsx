@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
+import LayoutContainer from "./components/layout/LayoutContainer";
 import {
   Box,
   Card,
@@ -26,7 +27,7 @@ function Login() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -55,17 +56,13 @@ function Login() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        minWidth:"100vw",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        bgcolor: "#f5f5f5",
-      }}
-    >
-      <Card sx={{margin: "auto", alignItems:"center", paddingLeft:"500px", width: 400, p: 3 }}>
+    <Box className="layout-container layout-flex-center">
+      <LayoutContainer 
+        maxWidth="md" 
+        padding="default"
+        sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}
+      >
+        <Card sx={{ width: 400, p: 3, margin: "auto" }}>
         <CardContent>
           <Typography variant="h5" align="center" gutterBottom>
             Login
@@ -143,6 +140,7 @@ function Login() {
           </form>
         </CardContent>
       </Card>
+      </LayoutContainer>
     </Box>
   );
 }

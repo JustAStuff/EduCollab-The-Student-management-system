@@ -258,16 +258,31 @@ const RemainingTasksCard = ({ taskMetrics, workspaceStats, loading = false }) =>
 
               {/* Quick Action Buttons */}
               <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
-                {workspaceStats?.mostActiveWorkspace && (
-                  <Button
-                    variant="contained"
-                    endIcon={<ArrowForward />}
-                    onClick={() => navigate(`/workspace-member/${workspaceStats.mostActiveWorkspace.id}`)}
-                    sx={{ bgcolor: '#106EBE', '&:hover': { bgcolor: '#0A4E82' } }}
-                  >
-                    Go to {workspaceStats.mostActiveWorkspace.name}
-                  </Button>
-                )}
+                {(() => {
+                  // Debug: Log workspace distribution
+                  console.log('RemainingTasksCard: Workspace task distribution:', workspaceStats?.taskDistribution);
+                  
+                  // Find workspace with remaining tasks (non-completed tasks)
+                  const workspaceWithRemainingTasks = workspaceStats?.taskDistribution?.find(ws => 
+                    ws.remainingCount > 0 || (ws.taskCount > ws.completedCount)
+                  );
+                  
+                  // Fallback to most active workspace if no remaining tasks found
+                  const targetWorkspace = workspaceWithRemainingTasks || workspaceStats?.mostActiveWorkspace;
+                  
+                  console.log('RemainingTasksCard: Target workspace for navigation:', targetWorkspace);
+                  
+                  return targetWorkspace && (
+                    <Button
+                      variant="contained"
+                      endIcon={<ArrowForward />}
+                      onClick={() => navigate(`/workspace-member/${targetWorkspace.id}`)}
+                      sx={{ bgcolor: '#106EBE', '&:hover': { bgcolor: '#0A4E82' } }}
+                    >
+                      Go to {targetWorkspace.name}
+                    </Button>
+                  );
+                })()}
                 <Button
                   variant="outlined"
                   onClick={() => window.location.reload()}

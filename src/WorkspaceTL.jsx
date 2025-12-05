@@ -16,11 +16,11 @@ import {
   Chip,
   Alert,
   CircularProgress,
-  Divider,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  Divider,
 } from "@mui/material";
 import {
   Add,
@@ -34,35 +34,32 @@ import {
   Visibility,
   ThumbUp,
   ThumbDown,
-  PictureAsPdf,
-  Description,
-  Image,
-  AttachFile,
+  Person,
 } from "@mui/icons-material";
-import { getFileIcon, formatFileSize } from "./utils/fileUtils";
-
-// Helper function to get icon component
-const getFileIconComponent = (filename) => {
-  const iconName = getFileIcon(filename);
-  switch (iconName) {
-    case 'PictureAsPdf':
-      return <PictureAsPdf sx={{ fontSize: 16, mr: 0.5, color: '#d32f2f' }} />;
-    case 'Description':
-      return <Description sx={{ fontSize: 16, mr: 0.5, color: '#1976d2' }} />;
-    case 'Image':
-      return <Image sx={{ fontSize: 16, mr: 0.5, color: '#388e3c' }} />;
-    default:
-      return <AttachFile sx={{ fontSize: 16, mr: 0.5 }} />;
-  }
-};
 import Sidebar from "./Sidebar";
+import LayoutContainer from "./components/layout/LayoutContainer";
 import AddMembers from "./AddMembers";
+import TaskCard from "./components/tasks/TaskCard";
+import FileUpload from "./components/tasks/FileUpload";
+import ReviewDialog from "./components/tasks/ReviewDialog";
+import RevocationDialog from "./components/tasks/RevocationDialog";
+import { generateFilePath } from "./utils/fileUtils";
+import { revokeTaskAssignment } from "./services/TaskService";
+import useRealTimeUpdates from "./hooks/useRealTimeUpdates";
+import NotificationBadge from "./components/notifications/NotificationBadge";
+import workspaceMemberCache from "./services/WorkspaceMemberCache";
+import useOptimisticUpdate from "./hooks/useOptimisticUpdate";
+import usePagination from "./hooks/usePagination";
+import PaginationControls from "./components/common/PaginationControls";
+import useDebounce from "./hooks/useDebounce";
 
 export default function WorkspaceTL() {
   const { id } = useParams();
   const [workspace, setWorkspace] = useState(null);
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [tlTasks, setTlTasks] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedMember, setExpandedMember] = useState(null);
@@ -70,20 +67,54 @@ export default function WorkspaceTL() {
   const [newTasks, setNewTasks] = useState([""]);
   const [submitting, setSubmitting] = useState(false);
   const [addMembersOpen, setAddMembersOpen] = useState(false);
-  const [reviewingTask, setReviewingTask] = useState(null);
-  const [reviewComments, setReviewComments] = useState("");
+  // Review functionality removed - TLs review tasks in WorkspaceTM, not here
   const [downloadingFile, setDownloadingFile] = useState(null);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedTaskForUpload, setSelectedTaskForUpload] = useState(null);
+  const [updatingTaskId, setUpdatingTaskId] = useState(null);
+  const [revocationDialogOpen, setRevocationDialogOpen] = useState(false);
+  const [taskToRevoke, setTaskToRevoke] = useState(null);
+  const [memberToRevoke, setMemberToRevoke] = useState(null);
+  const [isRevoking, setIsRevoking] = useState(false);
+  const [membersPerPage, setMembersPerPage] = useState(5);
 
-  useEffect(() => {
-    fetchWorkspaceData();
-  }, [id]);
+  // Optimistic updates for tasks
+  const {
+    data: optimisticTasks,
+    performOptimisticUpdate: updateTasksOptimistically
+  } = useOptimisticUpdate(tasks);
+
+  // Debounce members for performance
+  const debouncedMembers = useDebounce(members, 300);
+
+
+
+  // Pagination for members list
+  const {
+    currentPage: membersPage,
+    totalPages: membersTotalPages,
+    paginatedData: paginatedMembers,
+    goToPage: goToMembersPage
+  } = usePagination(debouncedMembers, membersPerPage);
 
   const fetchWorkspaceData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError("Please log in to access this workspace");
-        return;
+      // Test connection and get user
+      let user;
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (!authUser) {
+          setError("Please log in to access this workspace");
+          return;
+        }
+        user = authUser;
+        setCurrentUser(user);
+      } catch (authError) {
+        if (authError.message?.includes('Failed to fetch') || authError.message?.includes('ERR_')) {
+          setError("Network connection error. Please check your internet connection and try again.");
+          return;
+        }
+        throw authError;
       }
 
       // Fetch workspace details
@@ -103,43 +134,8 @@ export default function WorkspaceTL() {
 
       setWorkspace(workspaceData);
 
-      // Fetch workspace members with user details
-      const { data: membersData, error: membersError } = await supabase
-        .from("workspace_members")
-        .select("*")
-        .eq("workspace_id", id);
-
-      if (membersError) throw membersError;
-
-      // Fetch user details for each member
-      const membersWithUsers = [];
-      if (membersData && membersData.length > 0) {
-        for (const member of membersData) {
-          const { data: userData, error: userError } = await supabase
-            .from("users")
-            .select("id, email, full_name")
-            .eq("id", member.user_id)
-            .single();
-
-          if (!userError && userData) {
-            membersWithUsers.push({
-              ...member,
-              users: userData
-            });
-          } else {
-            // If user not found in users table, show placeholder
-            membersWithUsers.push({
-              ...member,
-              users: {
-                id: member.user_id,
-                email: "Unknown User",
-                full_name: "Team Member"
-              }
-            });
-          }
-        }
-      }
-
+      // Use cached workspace members for better performance
+      const membersWithUsers = await workspaceMemberCache.getWorkspaceMembers(id);
       setMembers(membersWithUsers || []);
 
       // Fetch all tasks for this workspace
@@ -152,6 +148,17 @@ export default function WorkspaceTL() {
       if (tasksError) throw tasksError;
       setTasks(tasksData || []);
 
+      // Fetch TL's own tasks (tasks assigned to the TL)
+      const { data: tlTasksData, error: tlTasksError } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("workspace_id", id)
+        .eq("assigned_to", user.id)
+        .order("created_at", { ascending: false });
+
+      if (tlTasksError) throw tlTasksError;
+      setTlTasks(tlTasksData || []);
+
     } catch (err) {
       console.error("Error fetching workspace data:", err);
       setError("Failed to load workspace data");
@@ -159,6 +166,16 @@ export default function WorkspaceTL() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchWorkspaceData();
+  }, [id]);
+
+  // Set up real-time updates
+  useRealTimeUpdates(id, {
+    onRefreshData: fetchWorkspaceData,
+    enableToasts: true
+  });
 
   const handleMemberClick = (memberId) => {
     setExpandedMember(expandedMember === memberId ? null : memberId);
@@ -240,36 +257,21 @@ export default function WorkspaceTL() {
     };
   };
 
+  const [reviewingTask, setReviewingTask] = useState(null);
+  const [reviewComments, setReviewComments] = useState("");
+
   const handleTaskReview = async (taskId, action, comments = "") => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const newStatus = action === "approve" ? "completed" : "needs_revision";
+      const { submitReview } = await import('./services/TaskService');
+      await submitReview(taskId, action, comments);
       
-      const updateData = {
-        status: newStatus,
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: user.id,
-        review_comments: comments || null,
-      };
-
-      if (newStatus === "completed") {
-        updateData.completed_at = new Date().toISOString();
-      }
-
-      const { error } = await supabase
-        .from("tasks")
-        .update(updateData)
-        .eq("id", taskId);
-
-      if (error) throw error;
-
       alert(`Task ${action === "approve" ? "approved" : "sent back for revision"}!`);
       setReviewingTask(null);
       setReviewComments("");
       fetchWorkspaceData();
     } catch (error) {
       console.error("Error reviewing task:", error);
-      alert("Failed to review task. Please try again.");
+      alert(`Failed to ${action} task: ${error.message}`);
     }
   };
 
@@ -324,34 +326,209 @@ export default function WorkspaceTL() {
     }
   };
 
+  // TL Task Management Functions
+  const handleTLTaskStatusChange = async (taskId, newStatus) => {
+    setUpdatingTaskId(taskId);
+    
+    try {
+      // Get CSRF token
+      const csrfToken = sessionStorage.getItem('csrf_token') || 'dev-token';
+      
+      // Optimistic update
+      const optimisticTasks = tlTasks.map(task => 
+        task.id === taskId 
+          ? { 
+              ...task, 
+              status: newStatus,
+              started_at: newStatus === 'in_progress' ? new Date().toISOString() : task.started_at,
+              completed_at: newStatus === 'completed' ? new Date().toISOString() : task.completed_at,
+              updated_at: new Date().toISOString()
+            }
+          : task
+      );
+
+      await updateTasksOptimistically(
+        optimisticTasks,
+        async () => {
+          // Use the enhanced changeTaskStatus function for workspace owners
+          const { changeTaskStatus } = await import('./services/TaskService');
+          await changeTaskStatus(taskId, newStatus, csrfToken);
+
+          // Return updated tasks
+          await fetchWorkspaceData();
+          return tlTasks;
+        },
+        tlTasks // Rollback data
+      );
+    } catch (error) {
+      console.error("Error updating task status:", error);
+      // Provide more specific error messages for workspace owners
+      const errorMessage = error.message || "Failed to update task status. Please try again.";
+      alert(`Task Status Update Failed: ${errorMessage}`);
+    } finally {
+      setUpdatingTaskId(null);
+    }
+  };
+
+  const handleTLTaskUpload = (task) => {
+    setSelectedTaskForUpload(task);
+    setUploadDialogOpen(true);
+  };
+
+  const handleFileUpload = async (file) => {
+    if (!selectedTaskForUpload || !currentUser) {
+      return;
+    }
+
+    try {
+      // Generate file path
+      const filePath = generateFilePath(
+        id,
+        selectedTaskForUpload.id,
+        currentUser.id,
+        file.name
+      );
+
+
+
+      // Upload file to storage with retry logic
+      let uploadData, uploadError;
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
+        try {
+          const result = await supabase.storage
+            .from("task-submissions")
+            .upload(filePath, file);
+          
+          uploadData = result.data;
+          uploadError = result.error;
+          
+          if (!uploadError) break; // Success, exit retry loop
+          retryCount++;
+          
+          if (retryCount < maxRetries) {
+            // Wait before retrying (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+          }
+        } catch (networkError) {
+          retryCount++;
+          
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+          } else {
+            throw new Error(`Network connection failed after ${maxRetries} attempts. Please check your internet connection and try again.`);
+          }
+        }
+      }
+
+      if (uploadError) {
+        throw new Error(`File upload failed: ${uploadError.message}`);
+      }
+
+
+
+      // Update task with submission info
+      const { error: updateError } = await supabase
+        .from("tasks")
+        .update({
+          status: "submitted",
+          submission_file_url: uploadData.path,
+          submission_file_name: file.name,
+          submitted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", selectedTaskForUpload.id);
+
+      if (updateError) {
+        throw new Error(`Failed to update task: ${updateError.message}`);
+      }
+      alert("File uploaded successfully!");
+      setUploadDialogOpen(false);
+      setSelectedTaskForUpload(null);
+      fetchWorkspaceData();
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      // Provide more specific error messages for workspace owners
+      const errorMessage = error.message || "Failed to upload file. Please try again.";
+      alert(`File Upload Failed: ${errorMessage}`);
+      throw new Error(errorMessage);
+    }
+  };
+
+  // Note: handleTLTaskReview removed - workspace owners don't review their own tasks
+
+  const handleViewSubmission = async (task) => {
+    if (!task.submission_file_url) return;
+    await downloadFile(task.submission_file_url, task.submission_file_name, task.id);
+  };
+
+  const handleDownloadSubmission = async (task) => {
+    if (!task.submission_file_url) return;
+    await downloadFile(task.submission_file_url, task.submission_file_name, task.id);
+  };
+
+  // Task Revocation Handlers
+  const handleRevokeClick = (task, member) => {
+    setTaskToRevoke(task);
+    setMemberToRevoke(member);
+    setRevocationDialogOpen(true);
+  };
+
+  const handleRevokeConfirm = async () => {
+    if (!taskToRevoke) return;
+
+    setIsRevoking(true);
+    try {
+      await revokeTaskAssignment(taskToRevoke.id);
+      alert('Task assignment revoked successfully!');
+      setRevocationDialogOpen(false);
+      setTaskToRevoke(null);
+      setMemberToRevoke(null);
+      fetchWorkspaceData();
+    } catch (error) {
+      console.error('Error revoking task:', error);
+      alert(error.message || 'Failed to revoke task assignment. Please try again.');
+    } finally {
+      setIsRevoking(false);
+    }
+  };
+
+  const handleRevokeCancel = () => {
+    setRevocationDialogOpen(false);
+    setTaskToRevoke(null);
+    setMemberToRevoke(null);
+  };
+
   if (loading) {
     return (
-      <Box sx={{ display: "flex", height: "100vh", backgroundColor: "#F9FAFB", width:"100vw" }}>
+      <Box className="layout-container">
         <Sidebar />
-        <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center", alignItems: "center", width:"100vw" }}>
+        <LayoutContainer maxWidth="xl" padding="default" className="layout-flex-center">
           <CircularProgress />
-        </Box>
+        </LayoutContainer>
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ display: "flex", height: "100vh", backgroundColor: "#F9FAFB", width:"77vw" }}>
+      <Box className="layout-container">
         <Sidebar />
-        <Box sx={{ flexGrow: 1, p: 4 }}>
+        <LayoutContainer maxWidth="xl" padding="default">
           <Alert severity="error">{error}</Alert>
-        </Box>
+        </LayoutContainer>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#F9FAFB", width:"100vw" }}>
+    <Box className="layout-container">
       <Sidebar />
       
-      <Box component="main" sx={{ flexGrow: 1, p: 4, width:"10vw"}}>
-        <Paper sx={{ p: 4, borderRadius: "12px" }}>
+      <LayoutContainer maxWidth="xl" padding="default">
+        <Paper className="layout-content-wrapper">
           <Typography variant="h4" gutterBottom sx={{ color: "#106EBE", fontWeight: "bold" }}>
             {workspace?.name}
           </Typography>
@@ -359,26 +536,72 @@ export default function WorkspaceTL() {
             {workspace?.description || "No description provided"}
           </Typography>
 
+          {/* My Tasks Section */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <Person sx={{ mr: 1 }} />
+              My Tasks ({tlTasks.length})
+            </Typography>
+            
+
+            
+            {tlTasks.length === 0 ? (
+              <Alert severity="info">You don't have any tasks assigned to you yet.</Alert>
+            ) : (
+              <Box>
+                {tlTasks.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    userRole="tl"
+                    workspaceRole="owner"
+                    currentUserId={currentUser?.id}
+                    onStatusChange={handleTLTaskStatusChange}
+                    onUpload={handleTLTaskUpload}
+                    onViewSubmission={handleViewSubmission}
+                    onDownloadSubmission={handleDownloadSubmission}
+                    isUpdating={updatingTaskId === task.id}
+                  />
+                ))}
+              </Box>
+            )}
+          </Box>
+
+          <Divider sx={{ my: 4 }} />
+
+          {/* Team Members Section */}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
             <Typography variant="h6" sx={{ display: "flex", alignItems: "center" }}>
               <Assignment sx={{ mr: 1 }} />
               Team Members ({members.length})
             </Typography>
-            <Button
-              variant="contained"
-              startIcon={<PersonAdd />}
-              onClick={() => setAddMembersOpen(true)}
-              sx={{ bgcolor: "#28a745", "&:hover": { bgcolor: "#218838" } }}
-            >
-              Add Members
-            </Button>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <NotificationBadge
+                workspaceId={id}
+                userId={currentUser?.id}
+                onClick={(count) => {
+                  if (count > 0) {
+                    alert(`You have ${count} task${count > 1 ? 's' : ''} pending review`);
+                  }
+                }}
+              />
+              <Button
+                variant="contained"
+                startIcon={<PersonAdd />}
+                onClick={() => setAddMembersOpen(true)}
+                sx={{ bgcolor: "#28a745", "&:hover": { bgcolor: "#218838" } }}
+              >
+                Add Members
+              </Button>
+            </Box>
           </Box>
 
           {members.length === 0 ? (
             <Alert severity="info">No members have joined this workspace yet.</Alert>
           ) : (
-            <List>
-              {members.map((member) => {
+            <>
+              <List>
+                {paginatedMembers.map((member) => {
                 const stats = getTaskStats(member.user_id);
                 const isExpanded = expandedMember === member.user_id;
                 const isAssigning = assigningTasks === member.user_id;
@@ -496,104 +719,48 @@ export default function WorkspaceTL() {
                         {getMemberTasks(member.user_id).length === 0 ? (
                           <Typography color="text.secondary">No tasks assigned yet</Typography>
                         ) : (
-                          <List dense>
+                          <Box>
                             {getMemberTasks(member.user_id).map((task) => (
-                              <ListItem key={task.id} sx={{ pl: 0, flexDirection: "column", alignItems: "stretch" }}>
-                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                                  <ListItemText
-                                    primary={task.title}
-                                    secondary={`Status: ${task.status.replace("_", " ")} • Created: ${new Date(task.created_at).toLocaleDateString()}`}
-                                  />
-                                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                    <Chip
-                                      size="small"
-                                      label={task.status.replace("_", " ")}
-                                      color={
-                                        task.status === "completed" ? "success" :
-                                        task.status === "submitted" ? "info" :
-                                        task.status === "needs_revision" ? "error" :
-                                        task.status === "in_progress" ? "warning" : "default"
-                                      }
-                                    />
-                                    {task.status === "submitted" && task.submission_file_url && (
-                                      <Box sx={{ display: "flex", gap: 1 }}>
-                                        <Button
-                                          size="small"
-                                          startIcon={downloadingFile === task.id ? <CircularProgress size={16} /> : <Visibility />}
-                                          onClick={() => downloadFile(task.submission_file_url, task.submission_file_name, task.id)}
-                                          disabled={downloadingFile === task.id}
-                                        >
-                                          {downloadingFile === task.id ? "Loading..." : "View"}
-                                        </Button>
-                                        <Button
-                                          size="small"
-                                          startIcon={<ThumbUp />}
-                                          color="success"
-                                          onClick={() => handleTaskReview(task.id, "approve")}
-                                        >
-                                          Approve
-                                        </Button>
-                                        <Button
-                                          size="small"
-                                          startIcon={<ThumbDown />}
-                                          color="error"
-                                          onClick={() => setReviewingTask(task.id)}
-                                        >
-                                          Revise
-                                        </Button>
-                                      </Box>
-                                    )}
-                                  </Box>
-                                </Box>
-                                {task.review_comments && (
-                                  <Box sx={{ mt: 1, p: 1, bgcolor: "#f5f5f5", borderRadius: 1 }}>
-                                    <Typography variant="caption" color="text.secondary">
-                                      Review Comments: {task.review_comments}
-                                    </Typography>
-                                  </Box>
-                                )}
-                              </ListItem>
+                              <TaskCard
+                                key={task.id}
+                                task={task}
+                                userRole="tl"
+                                workspaceRole="owner"
+                                currentUserId={currentUser?.id}
+                                onReview={(taskId) => setReviewingTask(taskId)}
+                                onViewSubmission={handleViewSubmission}
+                                onDownloadSubmission={handleDownloadSubmission}
+                                onRevoke={() => handleRevokeClick(task, member.users)}
+                                showRevokeButton={true}
+                              />
                             ))}
-                          </List>
+                          </Box>
                         )}
-
-                        {/* Review Dialog */}
-                        <Dialog
-                          open={reviewingTask !== null}
-                          onClose={() => setReviewingTask(null)}
-                          maxWidth="sm"
-                          fullWidth
-                        >
-                          <DialogTitle>Request Revision</DialogTitle>
-                          <DialogContent>
-                            <TextField
-                              fullWidth
-                              multiline
-                              rows={4}
-                              label="Comments for revision"
-                              value={reviewComments}
-                              onChange={(e) => setReviewComments(e.target.value)}
-                              placeholder="Explain what needs to be changed or improved..."
-                              sx={{ mt: 1 }}
-                            />
-                          </DialogContent>
-                          <DialogActions>
-                            <Button onClick={() => setReviewingTask(null)}>Cancel</Button>
-                            <Button
-                              variant="contained"
-                              color="error"
-                              onClick={() => handleTaskReview(reviewingTask, "revise", reviewComments)}
-                            >
-                              Send for Revision
-                            </Button>
-                          </DialogActions>
-                        </Dialog>
                       </Paper>
                     </Collapse>
                   </Box>
                 );
-              })}
-            </List>
+                })}
+              </List>
+
+              {/* Members Pagination */}
+              {membersTotalPages > 1 && (
+                <PaginationControls
+                  currentPage={membersPage}
+                  totalPages={membersTotalPages}
+                  totalItems={debouncedMembers.length}
+                  itemsPerPage={membersPerPage}
+                  onPageChange={goToMembersPage}
+                  onItemsPerPageChange={(newItemsPerPage) => {
+                    setMembersPerPage(newItemsPerPage);
+                    goToMembersPage(1);
+                  }}
+                  itemsPerPageOptions={[5, 10, 20]}
+                  showItemCount={true}
+                  size="small"
+                />
+              )}
+            </>
           )}
         </Paper>
 
@@ -605,7 +772,70 @@ export default function WorkspaceTL() {
           onClose={() => setAddMembersOpen(false)}
           onSuccess={fetchWorkspaceData}
         />
-      </Box>
+
+        {/* File Upload Dialog for TL Tasks */}
+        <Dialog
+          open={uploadDialogOpen}
+          onClose={() => {
+            setUploadDialogOpen(false);
+            setSelectedTaskForUpload(null);
+          }}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Upload Task Submission</DialogTitle>
+          <DialogContent>
+            {selectedTaskForUpload && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Task
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {selectedTaskForUpload.title}
+                </Typography>
+              </Box>
+            )}
+            <FileUpload
+              onUpload={handleFileUpload}
+              acceptedFormats=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+              maxSizeMB={10}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => {
+                setUploadDialogOpen(false);
+                setSelectedTaskForUpload(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Review Dialog for TM Tasks - TL reviews TM submissions here */}
+        <ReviewDialog
+          open={reviewingTask !== null}
+          task={tasks.find(t => t.id === reviewingTask)}
+          onClose={() => {
+            setReviewingTask(null);
+            setReviewComments("");
+          }}
+          onApprove={(taskId, comments) => handleTaskReview(taskId, 'approve', comments)}
+          onRequestRedo={(taskId, comments) => handleTaskReview(taskId, 'request_redo', comments)}
+          reviewerName={currentUser?.full_name || currentUser?.email}
+        />
+
+        {/* Revocation Dialog */}
+        <RevocationDialog
+          open={revocationDialogOpen}
+          task={taskToRevoke}
+          member={memberToRevoke}
+          onConfirm={handleRevokeConfirm}
+          onCancel={handleRevokeCancel}
+          isRevoking={isRevoking}
+        />
+      </LayoutContainer>
     </Box>
   );
 }

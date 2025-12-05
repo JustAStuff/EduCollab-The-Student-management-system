@@ -1,6 +1,8 @@
-# EduCollab - Student Management System
+# EduCollab - Educational Collaboration Platform
 
-A comprehensive collaboration platform combining features from Slack and Discord, designed specifically for educational environments and team management.
+## 🎃 Kiroween Hackathon 2025 - Frankenstein Category
+
+A comprehensive collaboration platform that stitches together Supabase, React, real-time features, and complex workflows into one powerful educational tool. Built entirely with Kiro AI.
 
 ## 🚀 Features
 
@@ -45,40 +47,65 @@ A comprehensive collaboration platform combining features from Slack and Discord
 
 For detailed structure, see [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md)
 
+## 🎯 Hackathon Submission
+
+- **Category**: Frankenstein - Stitching together incompatible technologies
+- **Demo Video**: [YouTube Link - Under 3 minutes]
+- **Live Demo**: [Deployment URL - Add after deploying]
+- **Repository**: [GitHub URL]
+- **License**: MIT (Open Source)
+
+### 🧪 Test Credentials (For Judges)
+
+You can create your own account or use these test credentials:
+
+**Team Leader Account:**
+- Email: `leader@educollab.demo`
+- Password: `LeaderDemo2025!`
+
+**Team Member Account:**
+- Email: `member@educollab.demo`
+- Password: `MemberDemo2025!`
+
+Or simply register a new account to explore all features!
+
+### How Kiro Was Used
+
+This project demonstrates extensive use of Kiro's features:
+
+1. **Spec-Driven Development** (6 major specs)
+   - Structured requirements, design, and task breakdowns
+   - 15+ completed task summaries
+   - Complex feature management
+
+2. **Agent Hooks** (3 automation hooks)
+   - Auto-linting on save
+   - Automated test running
+   - SQL migration validation
+
+3. **Steering Docs** (3 context guides)
+   - React best practices
+   - Supabase patterns
+   - Code quality standards
+
+4. **Vibe Coding**
+   - Rapid prototyping
+   - Bug fixes and refactoring
+   - Component generation
+
+See [KIROWEEN_SUBMISSION.md](KIROWEEN_SUBMISSION.md) for detailed Kiro usage documentation.
+
 ## 🚀 Quick Start
 
-### Prerequisites
-- Node.js 18+ 
-- Supabase account
-- Git
+See [QUICK_START.md](QUICK_START.md) for detailed setup instructions.
 
-### Installation
+**Quick Setup:**
+```bash
+npm install
+npm run dev
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd EduCollab-The-Student-management-system
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up Supabase**
-   - Create a new Supabase project
-   - Apply migrations from `/migrations/` folder
-   - Update `src/supabaseClient.js` with your project credentials
-
-4. **Start development server**
-   ```bash
-   npm run dev
-   ```
-
-5. **Open in browser**
-   ```
-   http://localhost:5173
-   ```
+Configure Supabase credentials in `src/supabaseClient.js` and apply migrations from `supabase/migrations/`.
 
 ## 📊 Dashboard Features
 

@@ -1,0 +1,15 @@
+{
+  "name": "Lint on Save",
+  "description": "Automatically lints JavaScript files when saved to catch errors early",
+  "trigger": {
+    "type": "onSave",
+    "filePattern": "src/**/*.{js,jsx}"
+  },
+  "actions": [
+    {
+      "type": "runCommand",
+      "command": "npm run lint"
+    }
+  ],
+  "enabled": true
+}

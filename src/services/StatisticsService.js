@@ -362,7 +362,7 @@ class StatisticsService {
       const owned = ownedWorkspaces || [];
       const member = (memberWorkspaces || []).map(m => m.workspaces).filter(Boolean);
       
-      // Find most active workspace
+      // Find most active workspace and calculate detailed task distribution
       const workspaceTaskCounts = {};
       (taskDistribution || []).forEach(task => {
         const wsId = task.workspace_id;
@@ -371,12 +371,24 @@ class StatisticsService {
             id: wsId,
             name: task.workspaces?.name || 'Unknown',
             taskCount: 0,
-            completedCount: 0
+            completedCount: 0,
+            remainingCount: 0,
+            activeCount: 0,
+            submittedCount: 0
           };
         }
         workspaceTaskCounts[wsId].taskCount++;
+        
         if (task.status === 'completed') {
           workspaceTaskCounts[wsId].completedCount++;
+        } else {
+          workspaceTaskCounts[wsId].remainingCount++;
+          
+          if (['todo', 'in_progress', 'needs_revision'].includes(task.status)) {
+            workspaceTaskCounts[wsId].activeCount++;
+          } else if (task.status === 'submitted') {
+            workspaceTaskCounts[wsId].submittedCount++;
+          }
         }
       });
 
